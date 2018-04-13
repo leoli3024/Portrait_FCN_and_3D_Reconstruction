@@ -7,10 +7,12 @@ import numpy as np
 import scipy
 import cv2
 import dlib
+import csv
 sys.path.append('/Users/yu-chieh/seg_models/models/slim/')
 sys.path.append("/Users/yu-chieh/seg_models/tf-image-segmentation/")
 from tf_image_segmentation.models.fcn_16s import FCN_16s
 from tf_image_segmentation.utils.inference import adapt_network_for_any_size_input
+from portrait_plus import BatchDatset, TestDataset
 import TensorflowUtils_plus as utils
 from scipy import misc
 
@@ -142,6 +144,15 @@ def inference(image, keep_prob):
 
     return tf.expand_dims(annotation_pred, dim=3), conv_t3
 
+def record_train_val_data(train_lst, test_lst):
+    with open('train.csv', 'a') as fp:
+        writer = csv.writer(fp, delimiter=',')
+        writer.writerows(train_lst)
+    with open('test.csv', 'a') as fp:
+        writer = csv.writer(fp, delimiter=',')
+        writer.writerows(test_lst)
+
+
 def train(loss_val, var_list):
     optimizer = tf.train.AdamOptimizer(FLAGS.learning_rate)
     grads = optimizer.compute_gradients(loss_val, var_list=var_list)
@@ -152,6 +163,8 @@ def train(loss_val, var_list):
     return optimizer.apply_gradients(grads)
 
 def main(argv=None):
+    train_errors = []
+    val_errors = []
     keep_probability = tf.placeholder(tf.float32, name="keep_probabilty")
     image = tf.placeholder(tf.float32, shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, 6], name="input_image")
     annotation = tf.placeholder(tf.int32, shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, 1], name="annotation")
@@ -160,8 +173,8 @@ def main(argv=None):
     #tf.image_summary("input_image", image, max_images=2)
     #tf.image_summary("ground_truth", tf.cast(annotation, tf.uint8), max_images=2)
     #tf.image_summary("pred_annotation", tf.cast(pred_annotation, tf.uint8), max_images=2)
-    loss = tf.reduce_mean((tf.nn.sparse_softmax_cross_entropy_with_logits(logits,
-                                                                          tf.squeeze(annotation, squeeze_dims=[3]),
+    loss = tf.reduce_mean((tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits,
+                                                                          labels=tf.squeeze(annotation, squeeze_dims=[3]),
                                                                           name="entropy")))
     #tf.scalar_summary("entropy", loss)
 
@@ -200,29 +213,32 @@ def main(argv=None):
     itr = 0
     train_images, train_annotations = train_dataset_reader.next_batch()
     trloss = 0.0
-    while len(train_annotations) > 0:
+    while len(train_annotations) > 0 or itr < 10000:
+        print(itr)
         #train_images, train_annotations = train_dataset_reader.next_batch(FLAGS.batch_size)
         #print('==> batch data: ', train_images[0][100][100], '===', train_annotations[0][100][100])
         feed_dict = {image: train_images, annotation: train_annotations, keep_probability: 0.5}
         _, rloss =  sess.run([train_op, loss], feed_dict=feed_dict)
         trloss += rloss
 
-        if itr % 100 == 0:
+        if itr % 1000 == 0:
             #train_loss, rpred = sess.run([loss, pred_annotation], feed_dict=feed_dict)
             print("Step: %d, Train_loss:%f" % (itr, trloss / 100))
+            train_errors.append(trloss / 100)
             trloss = 0.0
             #summary_writer.add_summary(summary_str, itr)
 
-        #if itr % 10000 == 0 and itr > 0:
-        '''
-        valid_images, valid_annotations = validation_dataset_reader.next_batch(FLAGS.batch_size)
-        valid_loss = sess.run(loss, feed_dict={image: valid_images, annotation: valid_annotations,
-                                                       keep_probability: 1.0})
-        print("%s ---> Validation_loss: %g" % (datetime.datetime.now(), valid_loss))'''
+        if itr % 1000 == 0 and itr > 0:
+            valid_images, valid_annotations = validation_dataset_reader.next_batch(FLAGS.batch_size)
+            valid_loss = sess.run(loss, feed_dict={image: valid_images, annotation: valid_annotations,
+                                                           keep_probability: 1.0})
+            val_errors.append(valid_loss/100)
+            print("%s ---> Validation_loss: %g" % (datetime.datetime.now(), valid_loss))
         itr += 1
 
         train_images, train_annotations = train_dataset_reader.next_batch()
     saver.save(sess, FLAGS.logs_dir + "plus_model.ckpt", itr)
+    record_train_val_data(train_errors, val_errors)
 
     '''elif FLAGS.mode == "visualize":
         valid_images, valid_annotations = validation_dataset_reader.get_random_batch(FLAGS.batch_size)
@@ -332,5 +348,6 @@ image = tf.cast(image, tf.float32)
 # weights = np.squeeze(model_data['layers'])
 
 
-print(inference(image, 0.8))
+# print(inference(image, 0.8))
 
+main()

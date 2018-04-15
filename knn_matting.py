@@ -247,7 +247,7 @@ def resnet(image):
 def train_main(epoch, train_size):
     #tf.scalar_summary("entropy", loss)
     y = get_y_for_fcn(train_size, 0)
-    true_y = get_true_y_for_fcn(train_size, 0)[:len(y)]/255
+    true_y = get_true_y_for_fcn(train_size, 0)[:len(y)]
     # # model
     image = tf.placeholder(tf.float32, shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, NUM_CHANNELS], name="input_image")
     # image = tf.image.resize_images(image, size=(IMAGE_HEIGHT, IMAGE_WIDTH))
@@ -285,7 +285,7 @@ def main():
     imgs = get_images_for_fcn(amount, index)
     trimaps = get_trimap_for_fcn(amount, index)
     save_knn_mattes(imgs, trimaps, filenames, mylambda=100)
-    train_size = 27
+    # train_size = 27
     # train_main(50, train_size)
     # resize_images_in_dir("/Users/yu-chieh/dataxproj/knn_alpha", IMAGE_WIDTH, IMAGE_HEIGHT)
     # # resize_images_in_dir("/Users/yu-chieh/Downloads/gt_training_lowres", IMAGE_WIDTH, IMAGE_HEIGHT)

@@ -7,11 +7,9 @@ import numpy as np
 import scipy
 # import cv2
 import dlib
+from PIL import Image
 import csv
 sys.path.append('/Users/yu-chieh/seg_models/models/slim/')
-# sys.path.append("/Users/yu-chieh/seg_models/tf-image-segmentation/")
-# from tf_image_segmentation.models.fcn_16s import FCN_16s
-# from tf_image_segmentation.utils.inference import adapt_network_for_any_size_input
 from portrait_plus import BatchDatset, TestDataset
 import TensorflowUtils_plus as utils
 from scipy import misc
@@ -145,10 +143,10 @@ def inference(image, keep_prob):
     return tf.expand_dims(annotation_pred, dim=3), conv_t3
 
 def record_train_val_data(train_lst, test_lst):
-    with open('train.csv', 'a') as fp:
+    with open('result/portraitfcntrain.csv', 'a') as fp:
         writer = csv.writer(fp, delimiter=',')
         writer.writerows(train_lst)
-    with open('test.csv', 'a') as fp:
+    with open('result/portraitfcntest.csv', 'a') as fp:
         writer = csv.writer(fp, delimiter=',')
         writer.writerows(test_lst)
 
@@ -184,17 +182,6 @@ def main(argv=None):
     #print("Setting up summary op...")
     #summary_op = tf.merge_all_summaries()
 
-    '''
-    print("Setting up image reader...")
-    train_records, valid_records = scene_parsing.read_dataset(FLAGS.data_dir)
-    print(len(train_records))
-    print(len(valid_records))
-    print("Setting up dataset reader")
-    image_options = {'resize': True, 'resize_size': IMAGE_SIZE}
-    if FLAGS.mode == 'train':
-        train_dataset_reader = dataset.BatchDatset(train_records, image_options)
-    validation_dataset_reader = dataset.BatchDatset(valid_records, image_options)
-    '''
     train_dataset_reader = BatchDatset('data/trainlist.mat')
 
     sess = tf.Session()
@@ -252,102 +239,114 @@ def main(argv=None):
             utils.save_image(pred[itr].astype(np.uint8), FLAGS.logs_dir, name="pred_" + str(5+itr))
             print("Saved image: %d" % itr)'''
 
-#### DUMB NETWORK
-# def get_all_images_for_fcn(num_images):
-#     # get num_images images form the path and put as a matrix
-#     imgs = []
-#     num = 0
-#     path = '/Users/yu-chieh/Downloads/images_data_crop/'
-#     for f in os.listdir(path):
-#         if num >= num_images:
-#             return np.array(imgs)
-#         image_path = os.path.join(path,f)
-#         image = scipy.ndimage.imread(image_path, mode='RGB')
-#         # cheating version
-#         # image = np.dstack((image, get_xy_mask(image)))
-#         imgs.append(image)
-#         num += 1
-#     return np.array(imgs)
+def pred_one_image(img):
+    keep_probability = tf.placeholder(tf.float32, name="keep_probabilty")
+    image = tf.placeholder(tf.float32, shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, 6], name="input_image")
+    annotation = tf.placeholder(tf.int32, shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, 1], name="annotation")
+    pred_annotation, logits = inference(image, keep_probability)
+    sft = tf.nn.sigmoid(logits)
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        ckpt = tf.train.get_checkpoint_state(FLAGS.logs_dir)
+        saver = tf.train.Saver()
+        if ckpt and ckpt.model_checkpoint_path:
+            saver.restore(sess, ckpt.model_checkpoint_path)
+            print("Model restored...")
+        feed_dict = {image: img, keep_probability: 0.5}
+        rsft, pred_ann = sess.run([sft, pred_annotation], feed_dict=feed_dict)
+        _, h, w, _ = rsft.shape
+        preds = np.zeros((h, w, 1), dtype=np.float)
+        for i in range(h):
+            for j in range(w):
+                if rsft[0][i][j][0] > 0.5:
+                    preds[i][j][0] = 255.0
+                elif rsft[0][i][j][0] > 0.2:
+                    preds[i][j][0] = 128.0
+                else:
+                    preds[i][j]  = 0.0
+        save_alpha_mask_img(preds, 'res/trimap' + '/face_demo')
 
-# def get_facial_points(image, num_points):
-#     predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
-#     detector = dlib.get_frontal_face_detector()
-#     dets = detector(image, 1)
-#     points = []
-#     for k, d in enumerate(dets):
-#         # Get the landmarks/parts for the face in box d.
-#         shape = predictor(image, d)
-#         for i in range(num_points):
-#             pt = shape.part(i)
-#             points.append([int(pt.x), int(pt.y)])
-#     return np.array(points)
+def pred():
+    keep_probability = tf.placeholder(tf.float32, name="keep_probabilty")
+    image = tf.placeholder(tf.float32, shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, 6], name="input_image")
+    annotation = tf.placeholder(tf.int32, shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, 1], name="annotation")
 
-# def get_xy_mask(image):
-#     # bad version
-#     image_src = image
-#     mask_dst = scipy.ndimage.imread('/Users/yu-chieh/Downloads/images_data_crop/02457.jpg', mode='RGB')
-#     dst = get_facial_points(mask_dst, 30)
-#     src = get_facial_points(image_src, 30)
-#     h, status = cv2.findHomography(src, dst)
-#     im_dst = cv2.warpPerspective(image_src, h, (image_src.shape[1], image_src.shape[0]))
-#     return im_dst
+    pred_annotation, logits = inference(image, keep_probability)
+    sft = tf.nn.softmax(logits)
+    test_dataset_reader = TestDataset('data/testlist.mat')
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        ckpt = tf.train.get_checkpoint_state(FLAGS.logs_dir)
+        saver = tf.train.Saver()
+        if ckpt and ckpt.model_checkpoint_path:
+            saver.restore(sess, ckpt.model_checkpoint_path)
+            print("Model restored...")
+        itr = 0
+        test_images, test_annotations, test_orgs = test_dataset_reader.next_batch()
+        #print('getting', test_annotations[0, 200:210, 200:210])
+        print(len(test_images), len(test_annotations), len(test_orgs))
+        while len(test_annotations) > 0:
+            # if itr < 22:
+            #     test_images, test_annotations, test_orgs = test_dataset_reader.next_batch()
+            #     itr += 1
+            #     continue
+            if itr > 22:
+                break
+            feed_dict = {image: test_images, annotation: test_annotations, keep_probability: 0.5}
+            rsft, pred_ann = sess.run([sft, pred_annotation], feed_dict=feed_dict)
+            # print(rsft.shape)
+            _, h, w, _ = rsft.shape
+            preds = np.zeros((h, w, 1), dtype=np.float)
+            for i in range(h):
+                for j in range(w):
+                    if rsft[0][i][j][0] < 0.1:
+                        preds[i][j][0] = 255
+                    elif rsft[0][i][j][0] < 0.8:
+                        preds[i][j][0] = 128
+                    else:
+                        preds[i][j][0]  = 0
+            print(itr)
+            org0_im = Image.fromarray(np.uint8(test_orgs[0]))
+            org0_im.save('res/org' + str(itr) + '.jpg')
+            save_alpha_img(test_orgs[0], test_annotations[0], 'res/ann' + str(itr))
+            save_alpha_mask_img(preds, 'res/trimap' + str(itr))
+            save_alpha_img(test_orgs[0], pred_ann[0], 'res/pre' + str(itr))
+            test_images, test_annotations, test_orgs = test_dataset_reader.next_batch()
+            itr += 1
 
-# def test_dumb_fcn_featurizer(test_size, x, train_fcn=False, checkpoint_path=cpstandard):
-#     """
-#     ========== Args ==========
-#       checkpoint_path: Str. Path to `.npy` file containing AlexNet parameters.
-#        can be found here: `https://github.com/warmspringwinds/tf-image-segmentation/`
-#       num_channels: Int. number of channels in the input image to be featurized.
-#        FCN is pretrained with 3 channels.
-#       train_fcn: Boolean. Whether or not to train the preloaded weights.
-      
-#     ========== Returns ==========
-#         A featurizer function that takes in a tensor with shape (b, h, w, c) and
-#         returns a tensor with shape (b, dim).
-#     """
-#     size_muliple=32
-#     num_class=21
-#     num_channels=3
-#     image_shape = (None, None, num_channels)  # RGB + Segmentation id
-#     images = tf.placeholder(tf.uint8, shape=(test_size,) + image_shape)
-#     preprocessed_images = tf.image.resize_images(images, size=(229, 229))
-
-#     # # Be careful: after adaptation, network returns final labels
-#     # # and not logits
-#     # with tf.variable_scope("conv_to_channel3"):
-#     #     filter_m = tf.Variable(tf.random_normal([1,1,num_channels,3]))
-#     #     preprocessed_images_3_channels = tf.nn.conv2d(preprocessed_images, filter_m, strides=[1, 1, 1, 1], padding='VALID')
-#     #     shape_of_this = tf.shape(preprocessed_images_3_channels)
-
-#     model = adapt_network_for_any_size_input(FCN_16s, size_muliple)
-#     pred, fcn_16s_variables_mapping = model(image_batch_tensor=preprocessed_images,
-#                                           number_of_classes=num_class,
-#                                           is_training=train_fcn)
-#     binary_pred = tf.nn.sigmoid(tf.cast(pred, tf.float32), name="sigmoid")
-#     with tf.Session() as sess:
-#         sess.run(tf.global_variables_initializer())
-#         # restore checkpoint
-#         saver = tf.train.Saver()
-#         saver.restore(sess, checkpoint_path)
-#         # a = sess.run([shape_of_this], feed_dict={images: x})
-#         # print(a)
-#         original_imgs, output_masks = sess.run([images, binary_pred], feed_dict={images: x})
-#         io.imshow(original_imgs[0])
-#         io.show()
-#         io.imshow(output_masks[0].squeeze())
-#         io.show()
-
-
-image = np.zeros((2, IMAGE_HEIGHT, IMAGE_WIDTH, 6))
-image = tf.cast(image, tf.float32)
-# # print(imgs.shape)
-# # test_dumb_fcn_featurizer(2, imgs)
-# model_data = utils.get_model_data(FLAGS.model_dir, MODEL_URL)
-# mean = model_data['normalization'][0][0][0]
-# mean_pixel = np.mean(mean, axis=(0, 1))
-# weights = np.squeeze(model_data['layers'])
+def save_alpha_img(org, mat, name):
+    w, h = mat.shape[0], mat.shape[1]
+    #print(mat[200:210, 200:210])
+    rmat = np.reshape(mat, (w, h))
+    amat = np.zeros((w, h, 4), dtype=np.int)
+    amat[:, :, 3] = np.round(rmat * 1000)
+    amat[:, :, 0:3] = org
+    #print(amat[200:205, 200:205])
+    #im = Image.fromarray(np.uint8(amat))
+    #im.save(name + '.png')
+    print(name)
+    misc.imsave(name + '.png', amat)
 
 
-# print(inference(image, 0.8))
+def save_alpha_mask_img(mat, name):
+    w, h = mat.shape[0], mat.shape[1]
+    #print(mat[200:210, 200:210])
+    print(w, h)
+    rmat = np.reshape(mat, (w, h))
+    amat = np.zeros((w, h, 3), dtype=np.int)
+    amat[:, :, 0] = rmat
+    amat[:, :, 1] = rmat
+    amat[:, :, 2] = rmat
+    # amat[:, :, 0:3] = org
+    #print(amat[200:205, 200:205])
+    # im = Image.fromarray(np.uint8(amat))
+    # im.save(name + '.png')
+    misc.imsave(name + '.png', amat)
 
-main()
+### call main to train, pred to predict ### 
+# main()
+# image = TestDataset('data/testlist.mat').get_images(20)[0]
+# image = np.expand_dims(image, axis=0)
+# print(image)
+# pred_one_image(image)
+pred()

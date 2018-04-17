@@ -7,6 +7,7 @@ import numpy as np
 import scipy
 # import cv2
 # import dlib
+import pandas as pd
 from PIL import Image
 import csv
 sys.path.append('/Users/yu-chieh/seg_models/models/slim/')
@@ -142,14 +143,9 @@ def inference(image, keep_prob):
 
     return tf.expand_dims(annotation_pred, dim=3), conv_t3
 
-def record_train_val_data(train_lst, test_lst):
-    with open('result/portraitfcntrain.csv', 'a') as fp:
-        writer = csv.writer(fp, delimiter=',')
-        writer.writerows(train_lst)
-    with open('result/portraitfcntest.csv', 'a') as fp:
-        writer = csv.writer(fp, delimiter=',')
-        writer.writerows(test_lst)
-
+def record_train_val_data(list_1, list_2):
+    df = pd.DataFrame(data={"train": list_1, "val": list_2})
+    df.to_csv("fcn_result.csv", sep=',',index=False)
 
 def train(loss_val, var_list):
     optimizer = tf.train.AdamOptimizer(FLAGS.learning_rate)
@@ -200,7 +196,7 @@ def main(argv=None):
     itr = 0
     train_images, train_annotations = train_dataset_reader.next_batch()
     trloss = 0.0
-    while len(train_annotations) > 0 or itr < 10000:
+    while len(train_annotations) > 0:
         print(itr)
         #train_images, train_annotations = train_dataset_reader.next_batch(FLAGS.batch_size)
         #print('==> batch data: ', train_images[0][100][100], '===', train_annotations[0][100][100])
@@ -208,14 +204,14 @@ def main(argv=None):
         _, rloss =  sess.run([train_op, loss], feed_dict=feed_dict)
         trloss += rloss
 
-        if itr % 1000 == 0:
+        if itr % 50 == 0:
             #train_loss, rpred = sess.run([loss, pred_annotation], feed_dict=feed_dict)
             print("Step: %d, Train_loss:%f" % (itr, trloss / 100))
             train_errors.append(trloss / 100)
             trloss = 0.0
             #summary_writer.add_summary(summary_str, itr)
 
-        if itr % 1000 == 0 and itr > 0:
+        if itr % 50 == 0 and itr > 0:
             valid_images, valid_annotations = validation_dataset_reader.next_batch(FLAGS.batch_size)
             valid_loss = sess.run(loss, feed_dict={image: valid_images, annotation: valid_annotations,
                                                            keep_probability: 1.0})
@@ -224,7 +220,8 @@ def main(argv=None):
         itr += 1
 
         train_images, train_annotations = train_dataset_reader.next_batch()
-    saver.save(sess, FLAGS.logs_dir + "plus_model.ckpt", itr)
+        if itr % 100 == 0:
+            saver.save(sess, FLAGS.logs_dir + "plus_model.ckpt", itr)
     record_train_val_data(train_errors, val_errors)
 
     '''elif FLAGS.mode == "visualize":

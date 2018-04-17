@@ -6,7 +6,7 @@ import skimage.io as io
 import numpy as np
 import scipy
 # import cv2
-import dlib
+# import dlib
 from PIL import Image
 import csv
 sys.path.append('/Users/yu-chieh/seg_models/models/slim/')
@@ -344,9 +344,10 @@ def save_alpha_mask_img(mat, name):
     misc.imsave(name + '.png', amat)
 
 ### call main to train, pred to predict ### 
-# main()
+main()
+
 # image = TestDataset('data/testlist.mat').get_images(20)[0]
 # image = np.expand_dims(image, axis=0)
 # print(image)
 # pred_one_image(image)
-pred()
+# pred()

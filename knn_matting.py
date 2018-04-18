@@ -23,7 +23,7 @@ NUM_CHANNELS = 3
 
 FLAGS = tf.flags.FLAGS
 tf.flags.DEFINE_integer("batch_size", "5", "batch size for training")
-tf.flags.DEFINE_string("logs_dir", "logs/", "path to logs directory")
+tf.flags.DEFINE_string("logs_dir", "knn_logs/", "path to logs directory")
 tf.flags.DEFINE_string("data_dir", "Data_zoo/MIT_SceneParsing/", "path to dataset")
 tf.flags.DEFINE_float("learning_rate", "1e-3", "Learning rate for Adam Optimizer")
 tf.flags.DEFINE_string("model_dir", "Model_zoo/", "Path to vgg model mat")
@@ -163,7 +163,7 @@ def get_true_y_for_fcn(num_images, s):
     # get num_images images form the path and put as a matrix
     imgs = []
     num = 0
-    path = '/Users/yu-chieh/Downloads/gt_training_lowres/'
+    path = '/Users/yu-chieh/Downloads/'
     for f in os.listdir(path)[s:]:
         if num >= num_images:
             return np.array(imgs)
@@ -188,54 +188,75 @@ def save_knn_mattes(imgs, trimaps, filenames, path, mylambda=100):
 
 ### helper from https://github.com/xuyuwei/resnet-tf/blob/master/resnet.py ###
 
-def weight_variable(shape, name=None):
-    return tf.truncated_normal(shape, stddev=0.1)
+# def weight_variable(shape, name=None):
+#     return tf.truncated_normal(shape, stddev=0.1)
 
-def conv_layer(inpt, filter_shape, stride, relu=True):
-    out_channels = filter_shape[3]
+# def conv_layer(inpt, filter_shape, stride, relu=True):
+#     out_channels = filter_shape[3]
 
-    filter_ = weight_variable(filter_shape, name="blah")
-    conv = tf.nn.conv2d(inpt, filter=filter_, strides=[1, stride, stride, 1], padding="SAME")
-    mean, var = tf.nn.moments(conv, axes=[0,1,2])
-    beta = tf.Variable(tf.zeros([out_channels]), name="beta")
-    gamma = weight_variable([out_channels], name="gamma")
+#     filter_ = weight_variable(filter_shape, name="blah")
+#     conv = tf.nn.conv2d(inpt, filter=filter_, strides=[1, stride, stride, 1], padding="SAME")
+#     mean, var = tf.nn.moments(conv, axes=[0,1,2])
+#     beta = tf.Variable(tf.zeros([out_channels]), name="beta")
+#     gamma = weight_variable([out_channels], name="gamma")
     
-    batch_norm = tf.nn.batch_norm_with_global_normalization(
-        conv, mean, var, beta, gamma, 0.001,
-        scale_after_normalization=True)
-    if relu:
-        out = tf.nn.relu(batch_norm)
-    else:
-        out = conv
+#     batch_norm = tf.nn.batch_norm_with_global_normalization(
+#         conv, mean, var, beta, gamma, 0.001,
+#         scale_after_normalization=True)
+#     if relu:
+#         out = tf.nn.relu(batch_norm)
+#     else:
+#         out = conv
 
-    return out
+#     return out
 
 
-def residual_block(inpt, output_depth, down_sample, projection=False):
-    input_depth = inpt.get_shape().as_list()[3]
-    if down_sample:
-        filter_ = [1,2,2,1]
-        inpt = tf.nn.max_pool(inpt, ksize=filter_, strides=filter_, padding='SAME')
+# def residual_block(inpt, output_depth, down_sample, projection=False):
+#     input_depth = inpt.get_shape().as_list()[3]
+#     if down_sample:
+#         filter_ = [1,2,2,1]
+#         inpt = tf.nn.max_pool(inpt, ksize=filter_, strides=filter_, padding='SAME')
 
-    conv1_r = conv_layer(inpt, [3, 3, input_depth, output_depth], 1)
-    conv2 = conv_layer(conv1_r, [3, 3, output_depth, output_depth], 1, False)
-    # conv3 = conv_layer(conv2,  [3, 3, output_depth, output_depth], 1, False)
-    # if input_depth != output_depth:
-    #     if projection:
-    #         # Option B: Projection shortcut
-    #         input_layer = conv_layer(inpt, [1, 1, input_depth, output_depth], 2)
-    #     # else:
-    #         # Option A: Zero-padding
-    #         # input_layer = tf.pad(inpt, [[0,0], [0,0], [0,0], [0, output_depth - input_depth]])
-    # else:
-    res = conv2
-    return res
+#     conv1_r = conv_layer(inpt, [3, 3, input_depth, output_depth], 1)
+#     conv2 = conv_layer(conv1_r, [3, 3, output_depth, output_depth], 1, False)
+#     if input_depth != output_depth:
+#         if projection:
+#             # Option B: Projection shortcut
+#             input_layer = conv_layer(inpt, [1, 1, input_depth, output_depth], 2)
+#         # else:
+#             # Option A: Zero-padding
+#             input_layer = tf.pad(inpt, [[0,0], [0,0], [0,0], [0, output_depth - input_depth]])
+#     else:
+#     res = conv2
+#     return res
 
 def resnet(image):
-    with tf.variable_scope('conv1'):
-        conv1 = conv_layer(image, [3, 3, 3, 3], 1)
-        conv2_x = residual_block(conv1, 3, False)
-    return conv2_x + image
+    # with tf.variable_scope('conv1'):
+    #     conv1 = conv_layer(image, [3, 3, 3, 3], 1)
+    #     conv2_x = residual_block(conv1, 3, False)
+    # return conv2_x + image
+    # Convolutional Layer #1
+    conv1 = tf.layers.conv2d(
+      inputs=image,
+      filters=64,
+      kernel_size=[3, 3],
+      padding="same",
+      activation=tf.nn.relu)
+
+    conv2 = tf.layers.conv2d(
+      inputs=conv1,
+      filters=64,
+      kernel_size=[3, 3],
+      padding="same",
+      activation=tf.nn.relu)
+
+    conv3 = tf.layers.conv2d(
+      inputs=conv2,
+      filters=1,
+      kernel_size=[3, 3],
+      padding="same")
+
+    return conv3 + image
 
 # def train(loss_val, var_list, optimizer):
 #     grads = optimizer.compute_gradients(loss_val, var_list=var_list)
@@ -252,7 +273,6 @@ def record_train_val_data(list_0, list_1, list_2):
 
 def train_main(epoch, train_size):
     #tf.scalar_summary("entropy", loss)
-    train_size = 5
     y = get_y_for_fcn(train_size, 0)
     true_y = get_true_y_for_fcn(train_size, 0)[:len(y)]
     train_y = y[:int(0.8*len(y))]
@@ -276,12 +296,21 @@ def train_main(epoch, train_size):
     # train_op = train(loss, trainable_var, optimizer)
 
     sess = tf.Session()
+
+    saver = tf.train.Saver()
+    #summary_writer = tf.train.SummaryWriter(FLAGS.logs_dir, sess.graph)
+
+    sess.run(tf.initialize_all_variables())
+    ckpt = tf.train.get_checkpoint_state(FLAGS.logs_dir)
+    if ckpt and ckpt.model_checkpoint_path:
+        saver.restore(sess, ckpt.model_checkpoint_path)
+        print("Model restored...")
+
     sess.run(tf.global_variables_initializer())
     sess.run(tf.local_variables_initializer())
     # previously tuned by trying out different Ks
     t_error = [.098, .06323, .03186, .0256]
     val_error = [.12, .082, .025, .00843]
-    epoch = 15
     for i in range(epoch-len(t_error)):
         print(i)
         permutation = np.random.permutation(train_y.shape[0])
@@ -296,6 +325,7 @@ def train_main(epoch, train_size):
         val_error.append(1.33*vloss / (100*255))
         print("Epoch: %d, Train_loss:%f" % (i, 1.33*rloss / (100*255)))
         print("Epoch: %d, Val_loss:%f" % (i, 1.33*vloss / (100*255)))
+    saver.save(sess, FLAGS.logs_dir + "plus_model.ckpt", epoch)
     record_train_val_data(np.linspace(0, epoch-1, epoch), t_error, val_error)
     plt.plot(np.linspace(0, epoch-1, epoch), t_error, color="blue", label="train")
     plt.plot(np.linspace(0, epoch-1, epoch), val_error, color="red", label="val")
@@ -315,6 +345,11 @@ def test_resnet(src_path, dst_path, filenames):
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
     sess.run(tf.local_variables_initializer())
+    ckpt = tf.train.get_checkpoint_state(FLAGS.logs_dir)
+    saver = tf.train.Saver()
+    if ckpt and ckpt.model_checkpoint_path:
+        saver.restore(sess, ckpt.model_checkpoint_path)
+        print("Model restored...")
     feed_dict = {image: y}
     alpha =  sess.run([logits], feed_dict=feed_dict)
     for i in range(len(alpha)):
@@ -329,8 +364,8 @@ def create_alpha_matte(src_img_path, src_trimap_path, dst_path):
     filenames = get_filenames(1, 0, src_img_path)
     imgs = get_images_for_fcn(1, 0, src_img_path)
     trimaps = get_trimap_for_fcn(1, 0, src_trimap_path)
-    # save_knn_mattes(imgs, trimaps, filenames, dst_path, mylambda=100)
-    test_resnet(dst_path, 'refined', filenames)
+    save_knn_mattes(imgs, trimaps, filenames, dst_path, mylambda=100)
+    # test_resnet(dst_path, 'refined', filenames)
 
 def rgb2gray(rgb):
     return np.dot(rgb[...,:3], [0.299, 0.587, 0.114])
@@ -358,7 +393,7 @@ def main():
     # trimaps = get_trimap_for_fcn(amount, index, '/Users/yu-chieh/Downloads/trimap_training_lowres/Trimap1')
     # save_knn_mattes(imgs, trimaps, filenames, 'knn_alpha', mylambda=100)
     train_size = 27
-    train_main(50, train_size)
+    train_main(20, train_size)
     # resize_images_in_dir("/Users/yu-chieh/dataxproj/knn_alpha", IMAGE_WIDTH, IMAGE_HEIGHT)
     # resize_images_in_dir("/Users/yu-chieh/Downloads/gt_training_lowres", IMAGE_WIDTH, IMAGE_HEIGHT)
     # # get_images_for_fcn(27, 0, '/Users/yu-chieh/Downloads/input_training_lowres/')
@@ -367,6 +402,6 @@ def main():
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     import scipy.misc
-    # main()
+    main()
     # create_alpha_matte('dumbfcntestdata', 'dumbfcntestresult', 'dumbfcntestalpha')
-    segment_background("dumbfcntestdata/org0.jpg", "dumbfcntestalpha/org0.jpg")
+    # segment_background("dumbfcntestdata/org0.jpg", "dumbfcntestalpha/org0.jpg")

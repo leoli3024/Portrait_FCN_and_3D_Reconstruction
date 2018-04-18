@@ -143,6 +143,88 @@ def inference(image, keep_prob):
 
     return tf.expand_dims(annotation_pred, dim=3), conv_t3
 
+
+def myinference_pretrained_weights(image, keep_prob):
+    print("setting up vgg initialized conv layers ...")
+    model_data = utils.get_model_data(FLAGS.model_dir, MODEL_URL)
+    mean = model_data['normalization'][0][0][0]
+    weights = np.squeeze(model_data['layers'])
+    with tf.variable_scope("inference"):
+        image_net = vgg_net(weights, image)
+        conv_final_layer = image_net["conv5_3"]
+        pool5 = tf.layers.max_pooling2d(inputs, 2, 2)
+        conv6 = tf.layers.conv2d(
+          inputs=pool5,
+          filters=4096,
+          kernel_size=7,
+          padding="same",
+          activation=tf.nn.relu)
+        relu_dropout6 = tf.nn.dropout(conv6, keep_prob=keep_prob)
+        conv7 = tf.layers.conv2d(
+          inputs=relu_dropout6,
+          filters=4096,
+          kernel_size=1,
+          padding="same",
+          activation=tf.nn.relu)
+        if FLAGS.debug:
+            utils.add_activation_summary(conv7)
+        relu_dropout7 = tf.nn.dropout(conv7, keep_prob=keep_prob)
+
+        #### first deconv
+        score = tf.layers.conv2d(
+          inputs=relu_dropout7,
+          filters=2,
+          padding="same",
+          kernel_size=1)
+        # score2
+        conv_t1 = tf.layers.conv2d_transpose(
+                    inputs=score,
+                    filters=2,
+                    padding="same",
+                    kernel_size=4,
+                    strides=2)
+        score_pool4 = tf.layers.conv2d(
+          inputs=image_net["pool4"],
+          filters=2,
+          kernel_size=1,
+          padding="same")
+        score_fused = utils.crop_and_add(score_pool4, conv_t1, name="fuse_1")
+
+        #### second deconv
+        # score4
+        conv_t2 = tf.layers.conv2d_transpose(
+                    inputs=score_fused,
+                    filters=2,
+                    padding="same",
+                    kernel_size=4,
+                    strides=2,
+                    use_bias=False)
+        score_pool3 = tf.layers.conv2d(
+          inputs=image_net["pool3"],
+          filters=2,
+          kernel_size=1,
+          padding="same")
+        score_fused = utils.crop_and_add(score_pool3, conv_t2, name="fuse_2")
+
+        ### final deconv
+
+        deconv_shape2 = image_net["pool3"].get_shape()
+        W_t2 = utils.weight_variable([4, 4, deconv_shape2[3].value, deconv_shape1[3].value], name="W_t2")
+        b_t2 = utils.bias_variable([deconv_shape2[3].value], name="b_t2")
+        conv_t2 = utils.conv2d_transpose_strided(fuse_1, W_t2, b_t2, output_shape=tf.shape(image_net["pool3"]))
+        fuse_2 = tf.add(conv_t2, image_net["pool3"], name="fuse_2")
+
+        # make score-pool4 dimensions same as score2
+        shape = tf.shape(image)
+        deconv_shape3 = tf.stack([shape[0], shape[1], shape[2], NUM_OF_CLASSESS])
+        W_t3 = utils.weight_variable([16, 16, NUM_OF_CLASSESS, deconv_shape2[3].value], name="W_t3")
+        b_t3 = utils.bias_variable([NUM_OF_CLASSESS], name="b_t3")
+        conv_t3 = utils.conv2d_transpose_strided(fuse_2, W_t3, b_t3, output_shape=deconv_shape3, stride=8)
+
+        annotation_pred = tf.argmax(conv_t3, dimension=3, name="prediction")
+
+    return tf.expand_dims(annotation_pred, dim=3), conv_t3
+
 def record_train_val_data(list_1, list_2):
     df = pd.DataFrame(data={"train": list_1, "val": list_2})
     df.to_csv("fcn_result.csv", sep=',',index=False)
@@ -339,10 +421,10 @@ def save_alpha_mask_img(mat, name):
     misc.imsave(name + '.png', amat)
 
 ### call main to train, pred to predict ### 
-main()
+# main()
 
 # image = TestDataset('data/testlist.mat').get_images(20)[0]
 # image = np.expand_dims(image, axis=0)
 # print(image)
 # pred_one_image(image)
-# pred()
+pred()

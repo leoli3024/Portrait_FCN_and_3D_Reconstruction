@@ -178,8 +178,8 @@ def main(argv=None):
     #print("Setting up summary op...")
     #summary_op = tf.merge_all_summaries()
 
-    train_dataset_reader = BatchDatset('data/trainlist.mat', "train", 1)
-    validation_dataset_reader = BatchDatset('data/trainlist.mat', "test", 1)
+    train_dataset_reader = BatchDatset('data/trainlist.mat', "train", 10)
+    validation_dataset_reader = BatchDatset('data/trainlist.mat', "test", 10)
 
     sess = tf.Session()
 
@@ -194,6 +194,7 @@ def main(argv=None):
         print("Model restored...")
     itr = 0
     train_images, train_annotations = train_dataset_reader.next_batch()
+    valid_images, valid_annotations = validation_dataset_reader.next_batch()
     while len(train_annotations) > 0 and itr < 10000:
         feed_dict = {image: train_images, annotation: train_annotations, keep_probability: 0.5}
         _, rloss =  sess.run([train_op, loss], feed_dict=feed_dict)
@@ -204,7 +205,6 @@ def main(argv=None):
             #summary_writer.add_summary(summary_str, itr)
 
         if itr % 50 == 0 and itr > 0:
-            valid_images, valid_annotations = validation_dataset_reader.next_batch()
             valid_loss = sess.run(loss, feed_dict={image: valid_images, annotation: valid_annotations,
                                                            keep_probability: 1.0})
             val_errors.append(valid_loss)
@@ -214,6 +214,12 @@ def main(argv=None):
             saver.save(sess, FLAGS.logs_dir + "plus_model.ckpt", itr)
         itr += 1
         train_images, train_annotations = train_dataset_reader.next_batch()
+        valid_images, valid_annotations = validation_dataset_reader.next_batch()
+        # reloop
+        if len(valid_images) <= 0:
+            print("reset validation set")
+            validation_dataset_reader = BatchDatset('data/trainlist.mat', "test", 10)
+            valid_images, valid_annotations = validation_dataset_reader.next_batch()
     record_train_val_data(train_errors, val_errors)
 
     '''elif FLAGS.mode == "visualize":

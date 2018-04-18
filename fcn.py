@@ -192,15 +192,9 @@ def main(argv=None):
     if ckpt and ckpt.model_checkpoint_path:
         saver.restore(sess, ckpt.model_checkpoint_path)
         print("Model restored...")
-
-    #if FLAGS.mode == "train":
     itr = 0
-    train_images, train_annotations = train_dataset_reader.next_batch()
-    trloss = 0.0
     while len(train_annotations) > 0 and itr < 10:
-        print(itr)
-        #train_images, train_annotations = train_dataset_reader.next_batch(FLAGS.batch_size)
-        #print('==> batch data: ', train_images[0][100][100], '===', train_annotations[0][100][100])
+        train_images, train_annotations = train_dataset_reader.next_batch()
         feed_dict = {image: train_images, annotation: train_annotations, keep_probability: 0.5}
         _, rloss =  sess.run([train_op, loss], feed_dict=feed_dict)
         if itr % 2 == 0:
@@ -211,7 +205,7 @@ def main(argv=None):
             #summary_writer.add_summary(summary_str, itr)
 
         if itr % 2 == 0 and itr > 0:
-            valid_images, valid_annotations = validation_dataset_reader.next_batch(FLAGS.batch_size)
+            valid_images, valid_annotations = validation_dataset_reader.next_batch()
             valid_loss = sess.run(loss, feed_dict={image: valid_images, annotation: valid_annotations,
                                                            keep_probability: 1.0})
             val_errors.append(valid_loss/100)

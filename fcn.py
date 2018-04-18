@@ -194,22 +194,23 @@ def main(argv=None):
         print("Model restored...")
     itr = 0
     train_images, train_annotations = train_dataset_reader.next_batch()
-    while len(train_annotations) > 0 and itr < 10:
+    while len(train_annotations) > 0 and itr < 10000:
         feed_dict = {image: train_images, annotation: train_annotations, keep_probability: 0.5}
         _, rloss =  sess.run([train_op, loss], feed_dict=feed_dict)
-        if itr % 2 == 0 and itr > 0:
+        if itr % 50 == 0 and itr > 0:
             #train_loss, rpred = sess.run([loss, pred_annotation], feed_dict=feed_dict)
-            print("Step: %d, Train_loss:%f" % (itr, rloss / 100))
-            train_errors.append(rloss / 100)
+            print("Step: %d, Train_loss:%f" % (itr, rloss))
+            train_errors.append(rloss)
             #summary_writer.add_summary(summary_str, itr)
 
-        if itr % 2 == 0 and itr > 0:
+        if itr % 50 == 0 and itr > 0:
             valid_images, valid_annotations = validation_dataset_reader.next_batch()
             valid_loss = sess.run(loss, feed_dict={image: valid_images, annotation: valid_annotations,
                                                            keep_probability: 1.0})
-            val_errors.append(valid_loss/100)
+            val_errors.append(valid_loss)
             print("%d ---> Validation_loss: %g" % (itr, valid_loss))
         if itr % 100 == 0 and itr > 0:
+            print("saving checkpoint")
             saver.save(sess, FLAGS.logs_dir + "plus_model.ckpt", itr)
         itr += 1
         train_images, train_annotations = train_dataset_reader.next_batch()

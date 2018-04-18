@@ -178,7 +178,8 @@ def main(argv=None):
     #print("Setting up summary op...")
     #summary_op = tf.merge_all_summaries()
 
-    train_dataset_reader = BatchDatset('data/trainlist.mat')
+    train_dataset_reader = BatchDatset('data/trainlist.mat', "train", 1)
+    validation_dataset_reader = BatchDatset('data/trainlist.mat', "test", 1)
 
     sess = tf.Session()
 

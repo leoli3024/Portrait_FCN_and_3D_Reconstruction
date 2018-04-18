@@ -16,8 +16,12 @@ class BatchDatset:
     img_width = 600
     img_height = 800
 
-    def __init__(self, imgs_path, batch_size=1):
+    def __init__(self, imgs_path, to_train="train", batch_size=1):
         self.imgs = sio.loadmat(imgs_path)['trainlist'][0]
+        if to_train == "train":
+            self.imgs = self.imgs[:int(0.8*len(self.imgs))]
+        else:
+            self.imgs = self.imgs[int(0.8*len(self.imgs)):]
         #self.labels = sio.loadmat(labels_path)['test_list'][0]
         self.batch_size = batch_size
         #self.max_batch = len(self.imgs) * 9 / batch_size

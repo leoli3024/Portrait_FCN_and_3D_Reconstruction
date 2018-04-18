@@ -200,8 +200,7 @@ def main(argv=None):
         if itr % 2 == 0:
             #train_loss, rpred = sess.run([loss, pred_annotation], feed_dict=feed_dict)
             print("Step: %d, Train_loss:%f" % (itr, rloss / 100))
-            train_errors.append(trloss / 100)
-            trloss = 0.0
+            train_errors.append(rloss / 100)
             #summary_writer.add_summary(summary_str, itr)
 
         if itr % 2 == 0 and itr > 0:

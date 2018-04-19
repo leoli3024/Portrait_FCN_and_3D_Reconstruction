@@ -404,7 +404,7 @@ def main():
     train_size = 27
     train_main(20, train_size)
     # resize_images_in_dir("/Users/yu-chieh/dataxproj/knn_alpha", IMAGE_WIDTH, IMAGE_HEIGHT)
-    # resize_images_in_dir("/Users/yu-chieh/Downloads/gt_training_lowres", IMAGE_WIDTH, IMAGE_HEIGHT)
+    resize_images_in_dir("/gt_training_lowres", IMAGE_WIDTH, IMAGE_HEIGHT)
     # # get_images_for_fcn(27, 0, '/Users/yu-chieh/Downloads/input_training_lowres/')
     # get_y_for_fcn(1, 0)
 

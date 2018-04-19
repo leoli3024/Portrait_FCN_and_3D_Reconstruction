@@ -255,7 +255,7 @@ def main(argv=None):
     train_op = train(loss, trainable_var)
 
     train_dataset_reader = BatchDatset('data/trainlist.mat', "train", batch_size)
-    validation_dataset_reader = BatchDatset('data/trainlist.mat', "test", batch_size)
+    validation_dataset_reader = TestDataset('data/testlist.mat', batch_size)
     config = tf.ConfigProto(log_device_placement=True)
     config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
@@ -297,7 +297,7 @@ def main(argv=None):
             # reloop
             if len(valid_images) <= 0:
                 print("reset validation set")
-                validation_dataset_reader = BatchDatset('data/trainlist.mat', "test", batch_size)
+                validation_dataset_reader = TestDataset('data/testlist.mat', batch_size)
                 valid_images, valid_annotations = validation_dataset_reader.next_batch()
             if len(train_annotations) <= 0:
                 train_dataset_reader = BatchDatset('data/trainlist.mat', "train", batch_size)

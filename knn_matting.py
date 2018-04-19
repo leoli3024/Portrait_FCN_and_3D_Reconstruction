@@ -11,6 +11,7 @@ import scipy
 import csv
 import pandas as pd
 import cv2
+import pdb
 
 sys.path.append('/Users/yu-chieh/seg_models/models/slim/')
 slim = tf.contrib.slim

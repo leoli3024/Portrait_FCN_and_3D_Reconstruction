@@ -303,7 +303,7 @@ def main(argv=None):
                 train_images, train_annotations = train_dataset_reader.next_batch()
     except:
         print("save session and data")
-        saver.save(sess, FLAGS.logs_dir + "plus_model.ckpt", str(datetime.datetime.now()))
+        saver.save(sess, FLAGS.logs_dir + "plus_model.ckpt")
         record_train_val_data(train_errors, val_errors)
         sys.exit()
     saver.save(sess, FLAGS.logs_dir + "plus_model.ckpt")

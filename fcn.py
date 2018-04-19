@@ -296,7 +296,7 @@ def main(argv=None):
             # reloop
             if len(valid_images) <= 0:
                 print("reset validation set")
-                validation_dataset_reader = BatchDatset('data/trainlist.mat', "test", 10)
+                validation_dataset_reader = BatchDatset('data/trainlist.mat', "test", batch_size)
                 valid_images, valid_annotations = validation_dataset_reader.next_batch()
     except KeyboardInterrupt:
         saver.save(sess, FLAGS.logs_dir + "plus_model.ckpt")

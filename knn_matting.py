@@ -321,7 +321,7 @@ def train_main(epoch, train_size):
         print('shuffled_b: ', type(shuffled_b), shuffled_b)
         print(shuffled_a.shape)
         print(shuffled_b.shape)
-        _, rloss =  sess.run([optimizer, loss], feed_dict={image: shuffled_a, true_image: shuffled_b})
+        #_, rloss =  sess.run([optimizer, loss], feed_dict={image: shuffled_a, true_image: shuffled_b})
         _, vloss =  sess.run([optimizer, loss], feed_dict={image: val_y, true_image: val_ty})
         # print(set(true_y[0].flatten()))
         # our loss function uses 255

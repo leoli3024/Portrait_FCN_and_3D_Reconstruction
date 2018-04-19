@@ -143,7 +143,7 @@ def get_filenames(num_images, s, path):
             fs.append(f)
     return fs
 
-def get_y_for_fcn(num_images, s, path='/Users/yu-chieh/dataxproj/knn_alpha'):
+def get_y_for_fcn(num_images, s, path='knn_alpha'): #'/Users/yu-chieh/dataxproj/knn_alpha'):
     # get num_images images form the path and put as a matrix
     imgs = []
     num = 0

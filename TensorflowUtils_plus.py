@@ -101,6 +101,19 @@ def conv2d_strided(x, W, b):
     conv = tf.nn.conv2d(x, W, strides=[1, 2, 2, 1], padding="SAME")
     return tf.nn.bias_add(conv, b)
 
+def crop_and_add(x1,x2, to_add=True):
+    x1_shape = tf.shape(x1)
+    x2_shape = tf.shape(x2)
+    # # offsets for the top left corner of the crop
+    # offsets = [0, (x1_shape[1] - x2_shape[1]) // 2, (x1_shape[2] - x2_shape[2]) // 2, 0]
+    # size = [-1, x2_shape[1], x2_shape[2], -1]
+    # x1_crop = tf.slice(x1, offsets, size)
+    x1_crop = tf.image.resize_image_with_crop_or_pad(x1, x2_shape[1], x2_shape[2])
+    if to_add:
+        return x1_crop + x2
+    return x1_crop
+
+
 
 def conv2d_transpose_strided(x, W, b, output_shape=None, stride = 2):
     # print x.get_shape()

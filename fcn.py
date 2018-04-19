@@ -14,6 +14,7 @@ sys.path.append('/Users/yu-chieh/seg_models/models/slim/')
 from portrait_plus import BatchDatset, TestDataset
 import TensorflowUtils_plus as utils
 from scipy import misc
+import datetime
 
 FLAGS = tf.flags.FLAGS
 tf.flags.DEFINE_integer("batch_size", "5", "batch size for training")
@@ -152,7 +153,7 @@ def myinference_pretrained_weights(image, keep_prob):
     with tf.variable_scope("inference"):
         image_net = vgg_net(weights, image)
         conv_final_layer = image_net["conv5_3"]
-        pool5 = tf.layers.max_pooling2d(inputs, 2, 2)
+        pool5 = tf.layers.max_pooling2d(conv_final_layer, 2, 2)
         conv6 = tf.layers.conv2d(
           inputs=pool5,
           filters=4096,
@@ -188,7 +189,7 @@ def myinference_pretrained_weights(image, keep_prob):
           filters=2,
           kernel_size=1,
           padding="same")
-        score_fused = utils.crop_and_add(score_pool4, conv_t1, name="fuse_1")
+        score_fused = utils.crop_and_add(score_pool4, conv_t1)
 
         #### second deconv
         # score4
@@ -204,30 +205,26 @@ def myinference_pretrained_weights(image, keep_prob):
           filters=2,
           kernel_size=1,
           padding="same")
-        score_fused = utils.crop_and_add(score_pool3, conv_t2, name="fuse_2")
+        score_fused2 = utils.crop_and_add(score_pool3, conv_t2)
+        # ### final deconv
+        # # upsample
+        conv_t3 = tf.layers.conv2d_transpose(
+                    inputs=score_fused2,
+                    filters=2,
+                    padding="same",
+                    kernel_size=16,
+                    strides=8,
+                    use_bias=False)
+        mask = utils.crop_and_add(conv_t3, image, to_add=False)
+        # this is not needed
+        annotation_pred = tf.argmax(mask, dimension=3, name="prediction")
+    return annotation_pred, mask
 
-        ### final deconv
-
-        deconv_shape2 = image_net["pool3"].get_shape()
-        W_t2 = utils.weight_variable([4, 4, deconv_shape2[3].value, deconv_shape1[3].value], name="W_t2")
-        b_t2 = utils.bias_variable([deconv_shape2[3].value], name="b_t2")
-        conv_t2 = utils.conv2d_transpose_strided(fuse_1, W_t2, b_t2, output_shape=tf.shape(image_net["pool3"]))
-        fuse_2 = tf.add(conv_t2, image_net["pool3"], name="fuse_2")
-
-        # make score-pool4 dimensions same as score2
-        shape = tf.shape(image)
-        deconv_shape3 = tf.stack([shape[0], shape[1], shape[2], NUM_OF_CLASSESS])
-        W_t3 = utils.weight_variable([16, 16, NUM_OF_CLASSESS, deconv_shape2[3].value], name="W_t3")
-        b_t3 = utils.bias_variable([NUM_OF_CLASSESS], name="b_t3")
-        conv_t3 = utils.conv2d_transpose_strided(fuse_2, W_t3, b_t3, output_shape=deconv_shape3, stride=8)
-
-        annotation_pred = tf.argmax(conv_t3, dimension=3, name="prediction")
-
-    return tf.expand_dims(annotation_pred, dim=3), conv_t3
 
 def record_train_val_data(list_1, list_2):
+
     df = pd.DataFrame(data={"train": list_1, "val": list_2})
-    df.to_csv("fcn_result.csv", sep=',',index=False)
+    df.to_csv(datetime.date.today().strftime("%I:%M%p%B%d") + "fcn_result.csv", sep=',',index=False)
 
 def train(loss_val, var_list):
     optimizer = tf.train.AdamOptimizer(FLAGS.learning_rate)
@@ -239,16 +236,16 @@ def train(loss_val, var_list):
     return optimizer.apply_gradients(grads)
 
 def main(argv=None):
+    batch_size=5
     train_errors = []
     val_errors = []
     keep_probability = tf.placeholder(tf.float32, name="keep_probabilty")
     image = tf.placeholder(tf.float32, shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, 6], name="input_image")
     annotation = tf.placeholder(tf.int32, shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, 1], name="annotation")
 
-    pred_annotation, logits = inference(image, keep_probability)
-    #tf.image_summary("input_image", image, max_images=2)
-    #tf.image_summary("ground_truth", tf.cast(annotation, tf.uint8), max_images=2)
-    #tf.image_summary("pred_annotation", tf.cast(pred_annotation, tf.uint8), max_images=2)
+    # pred_annotation, logits = inference(image, keep_probability)
+    _, logits = myinference_pretrained_weights(image, keep_probability)
+
     loss = tf.reduce_mean((tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits,
                                                                           labels=tf.squeeze(annotation, squeeze_dims=[3]),
                                                                           name="entropy")))
@@ -257,51 +254,55 @@ def main(argv=None):
     trainable_var = tf.trainable_variables()
     train_op = train(loss, trainable_var)
 
-    #print("Setting up summary op...")
-    #summary_op = tf.merge_all_summaries()
-
-    train_dataset_reader = BatchDatset('data/trainlist.mat', "train", 10)
-    validation_dataset_reader = BatchDatset('data/trainlist.mat', "test", 10)
+    train_dataset_reader = BatchDatset('data/trainlist.mat', "train", batch_size)
+    validation_dataset_reader = BatchDatset('data/trainlist.mat', "test", batch_size)
 
     sess = tf.Session()
 
     print("Setting up Saver...")
     saver = tf.train.Saver()
-    #summary_writer = tf.train.SummaryWriter(FLAGS.logs_dir, sess.graph)
 
     sess.run(tf.initialize_all_variables())
     ckpt = tf.train.get_checkpoint_state(FLAGS.logs_dir)
     if ckpt and ckpt.model_checkpoint_path:
+        print(ckpt.model_checkpoint_path)
         saver.restore(sess, ckpt.model_checkpoint_path)
         print("Model restored...")
     itr = 0
     train_images, train_annotations = train_dataset_reader.next_batch()
     valid_images, valid_annotations = validation_dataset_reader.next_batch()
-    while len(train_annotations) > 0 and itr < 10000:
-        feed_dict = {image: train_images, annotation: train_annotations, keep_probability: 0.5}
-        _, rloss =  sess.run([train_op, loss], feed_dict=feed_dict)
-        if itr % 50 == 0 and itr > 0:
-            #train_loss, rpred = sess.run([loss, pred_annotation], feed_dict=feed_dict)
-            print("Step: %d, Train_loss:%f" % (itr, rloss))
-            train_errors.append(rloss)
-            #summary_writer.add_summary(summary_str, itr)
+    try:
+        while len(train_annotations) > 0 and itr < 10000:
+            feed_dict = {image: train_images, annotation: train_annotations, keep_probability: 0.5}
+            _, rloss =  sess.run([train_op, loss], feed_dict=feed_dict)
+            print(rloss)
+            if itr % 50 == 0 and itr > 0:
+                #train_loss, rpred = sess.run([loss, pred_annotation], feed_dict=feed_dict)
+                print("Step: %d, Train_loss:%f" % (itr, rloss))
+                train_errors.append(rloss)
+                #summary_writer.add_summary(summary_str, itr)
 
-        if itr % 50 == 0 and itr > 0:
-            valid_loss = sess.run(loss, feed_dict={image: valid_images, annotation: valid_annotations,
-                                                           keep_probability: 1.0})
-            val_errors.append(valid_loss)
-            print("%d ---> Validation_loss: %g" % (itr, valid_loss))
-        if itr % 100 == 0 and itr > 0:
-            print("saving checkpoint")
-            saver.save(sess, FLAGS.logs_dir + "plus_model.ckpt", itr)
-        itr += 1
-        train_images, train_annotations = train_dataset_reader.next_batch()
-        valid_images, valid_annotations = validation_dataset_reader.next_batch()
-        # reloop
-        if len(valid_images) <= 0:
-            print("reset validation set")
-            validation_dataset_reader = BatchDatset('data/trainlist.mat', "test", 10)
+            if itr % 50 == 0 and itr > 0:
+                valid_loss = sess.run(loss, feed_dict={image: valid_images, annotation: valid_annotations,
+                                                               keep_probability: 1.0})
+                val_errors.append(valid_loss)
+                print("%d ---> Validation_loss: %g" % (itr, valid_loss))
+            if itr % 500 == 0 and itr > 0:
+                print("saving checkpoint")
+                saver.save(sess, FLAGS.logs_dir + "plus_model.ckpt", itr)
+            itr += 1
+            train_images, train_annotations = train_dataset_reader.next_batch()
             valid_images, valid_annotations = validation_dataset_reader.next_batch()
+            # reloop
+            if len(valid_images) <= 0:
+                print("reset validation set")
+                validation_dataset_reader = BatchDatset('data/trainlist.mat', "test", 10)
+                valid_images, valid_annotations = validation_dataset_reader.next_batch()
+    except KeyboardInterrupt:
+        saver.save(sess, FLAGS.logs_dir + "plus_model.ckpt")
+        record_train_val_data(train_errors, val_errors)
+        sys.exit()
+    saver.save(sess, FLAGS.logs_dir + "plus_model.ckpt")
     record_train_val_data(train_errors, val_errors)
 
     '''elif FLAGS.mode == "visualize":
@@ -320,8 +321,7 @@ def pred_one_image(img):
     keep_probability = tf.placeholder(tf.float32, name="keep_probabilty")
     image = tf.placeholder(tf.float32, shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, 6], name="input_image")
     annotation = tf.placeholder(tf.int32, shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, 1], name="annotation")
-    pred_annotation, logits = inference(image, keep_probability)
-    sft = tf.nn.sigmoid(logits)
+    pred_annotation, logits = myinference_pretrained_weights(image, keep_probability)
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         ckpt = tf.train.get_checkpoint_state(FLAGS.logs_dir)
@@ -330,26 +330,18 @@ def pred_one_image(img):
             saver.restore(sess, ckpt.model_checkpoint_path)
             print("Model restored...")
         feed_dict = {image: img, keep_probability: 0.5}
-        rsft, pred_ann = sess.run([sft, pred_annotation], feed_dict=feed_dict)
-        _, h, w, _ = rsft.shape
-        preds = np.zeros((h, w, 1), dtype=np.float)
-        for i in range(h):
-            for j in range(w):
-                if rsft[0][i][j][0] > 0.5:
-                    preds[i][j][0] = 255.0
-                elif rsft[0][i][j][0] > 0.2:
-                    preds[i][j][0] = 128.0
-                else:
-                    preds[i][j]  = 0.0
-        save_alpha_mask_img(preds, 'res/trimap' + '/face_demo')
+        _, logits = sess.run([pred_annotation, logits], feed_dict=feed_dict)
+        difference = np.exp(logits[:, :, 1] - logits[:, :, 0])
+        final = difference/(1+difference)
+        final = final[final > 0.5].astype(float)
+        save_alpha_mask_img(final, 'res/trimap' + '/face_demo')
 
 def pred():
     keep_probability = tf.placeholder(tf.float32, name="keep_probabilty")
     image = tf.placeholder(tf.float32, shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, 6], name="input_image")
     annotation = tf.placeholder(tf.int32, shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, 1], name="annotation")
 
-    pred_annotation, logits = inference(image, keep_probability)
-    sft = tf.nn.softmax(logits)
+    pred_annotation, logits = myinference_pretrained_weights(image, keep_probability)
     test_dataset_reader = TestDataset('data/testlist.mat')
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
@@ -360,34 +352,24 @@ def pred():
             print("Model restored...")
         itr = 0
         test_images, test_annotations, test_orgs = test_dataset_reader.next_batch()
-        #print('getting', test_annotations[0, 200:210, 200:210])
-        print(len(test_images), len(test_annotations), len(test_orgs))
         while len(test_annotations) > 0:
-            # if itr < 22:
-            #     test_images, test_annotations, test_orgs = test_dataset_reader.next_batch()
-            #     itr += 1
-            #     continue
             if itr > 22:
                 break
-            feed_dict = {image: test_images, annotation: test_annotations, keep_probability: 0.5}
-            rsft, pred_ann = sess.run([sft, pred_annotation], feed_dict=feed_dict)
-            # print(rsft.shape)
-            _, h, w, _ = rsft.shape
-            preds = np.zeros((h, w, 1), dtype=np.float)
-            for i in range(h):
-                for j in range(w):
-                    if rsft[0][i][j][0] < 0.1:
-                        preds[i][j][0] = 255
-                    elif rsft[0][i][j][0] < 0.8:
-                        preds[i][j][0] = 128
-                    else:
-                        preds[i][j][0]  = 0
-            print(itr)
+            feed_dict = {image: test_images, keep_probability: 0.5}
+            _, l = sess.run([pred_annotation, logits], feed_dict=feed_dict)
+            print(l.shape)
+            l = np.squeeze(l)
+            difference = np.exp(l[:, :, 1] - l[:, :, 0])
+            print(difference.shape)
+            final = (difference / (1.0+difference))
+            final[final <= 0.5] = 0
+            final[((final > 0.5) & (final <= 0.8))] = 128
+            final[final > 0.8] = 255
+            trimap = final
             org0_im = Image.fromarray(np.uint8(test_orgs[0]))
             org0_im.save('res/org' + str(itr) + '.jpg')
             save_alpha_img(test_orgs[0], test_annotations[0], 'res/ann' + str(itr))
-            save_alpha_mask_img(preds, 'res/trimap' + str(itr))
-            save_alpha_img(test_orgs[0], pred_ann[0], 'res/pre' + str(itr))
+            save_alpha_mask_img(trimap, 'res/trimap' + str(itr))
             test_images, test_annotations, test_orgs = test_dataset_reader.next_batch()
             itr += 1
 
@@ -401,11 +383,12 @@ def save_alpha_img(org, mat, name):
     #print(amat[200:205, 200:205])
     #im = Image.fromarray(np.uint8(amat))
     #im.save(name + '.png')
-    print(name)
+    # print(name)
     misc.imsave(name + '.png', amat)
 
 
 def save_alpha_mask_img(mat, name):
+    print(mat.shape)
     w, h = mat.shape[0], mat.shape[1]
     #print(mat[200:210, 200:210])
     print(w, h)
@@ -421,10 +404,10 @@ def save_alpha_mask_img(mat, name):
     misc.imsave(name + '.png', amat)
 
 ### call main to train, pred to predict ### 
-# main()
+main()
 
 # image = TestDataset('data/testlist.mat').get_images(20)[0]
 # image = np.expand_dims(image, axis=0)
 # print(image)
 # pred_one_image(image)
-pred()
+# pred()

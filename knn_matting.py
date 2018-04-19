@@ -164,7 +164,7 @@ def get_true_y_for_fcn(num_images, s):
     # get num_images images form the path and put as a matrix
     imgs = []
     num = 0
-    path = 'input_training_lowres'
+    path = 'gt_training_lowres'
     for f in os.listdir(path)[s:]:
         if num >= num_images:
             return np.array(imgs)
@@ -317,10 +317,10 @@ def train_main(epoch, train_size):
         permutation = np.random.permutation(train_y.shape[0])
         shuffled_a = train_y[permutation]
         shuffled_b = train_ty[permutation]
-        print('optimize: ', optimizer)
-        print('loss: ', loss)
         print('shuffled_a: ', shuffled_a)
         print('shuffled_b: ', shuffled_b)
+        print(shuffled_a.size)
+        print(shuffled_b.size)
         _, rloss =  sess.run([optimizer, loss], feed_dict={image: shuffled_a, true_image: shuffled_b})
         _, vloss =  sess.run([optimizer, loss], feed_dict={image: val_y, true_image: val_ty})
         # print(set(true_y[0].flatten()))

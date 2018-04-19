@@ -271,7 +271,7 @@ def main(argv=None):
         print("Model restored...")
     itr = 0
     train_images, train_annotations = train_dataset_reader.next_batch()
-    valid_images, valid_annotations = validation_dataset_reader.next_batch()
+    valid_images, valid_annotations, _ = validation_dataset_reader.next_batch()
     try:
         while itr < 5000:
             feed_dict = {image: train_images, annotation: train_annotations, keep_probability: 0.5}
@@ -293,12 +293,12 @@ def main(argv=None):
                 saver.save(sess, FLAGS.logs_dir + "plus_model.ckpt", itr)
             itr += 1
             train_images, train_annotations = train_dataset_reader.next_batch()
-            valid_images, valid_annotations = validation_dataset_reader.next_batch()
+            valid_images, valid_annotations, _ = validation_dataset_reader.next_batch()
             # reloop
             if len(valid_images) <= 0:
                 print("reset validation set")
                 validation_dataset_reader = TestDataset('data/testlist.mat', batch_size)
-                valid_images, valid_annotations = validation_dataset_reader.next_batch()
+                valid_images, valid_annotations, _ = validation_dataset_reader.next_batch()
             if len(train_annotations) <= 0:
                 train_dataset_reader = BatchDatset('data/trainlist.mat', "train", batch_size)
                 train_images, train_annotations = train_dataset_reader.next_batch()

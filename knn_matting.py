@@ -318,7 +318,7 @@ def train_main(epoch, train_size):
         shuffled_a = train_y[permutation]
         shuffled_b = train_ty[permutation]
         print('shuffled_a: ', shuffled_a)
-        print('shuffled_b: ', shuffled_b)
+        print('shuffled_b: ', type(shuffled_b), shuffled_b)
         print(shuffled_a.size)
         print(shuffled_b.size)
         _, rloss =  sess.run([optimizer, loss], feed_dict={image: shuffled_a, true_image: shuffled_b})

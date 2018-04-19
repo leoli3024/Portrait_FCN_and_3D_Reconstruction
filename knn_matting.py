@@ -401,7 +401,7 @@ def main():
     # imgs = get_images_for_fcn(amount, index, '/Users/yu-chieh/Downloads/input_training_lowres/')
     # trimaps = get_trimap_for_fcn(amount, index, '/Users/yu-chieh/Downloads/trimap_training_lowres/Trimap1')
     # save_knn_mattes(imgs, trimaps, filenames, 'knn_alpha', mylambda=100)
-     resize_images_in_dir("knn_alpha", IMAGE_WIDTH, IMAGE_HEIGHT)
+    resize_images_in_dir("knn_alpha", IMAGE_WIDTH, IMAGE_HEIGHT)
     resize_images_in_dir("gt_training_lowres", IMAGE_WIDTH, IMAGE_HEIGHT)
     
     train_size = 27

@@ -272,17 +272,17 @@ def main(argv=None):
     train_images, train_annotations = train_dataset_reader.next_batch()
     valid_images, valid_annotations = validation_dataset_reader.next_batch()
     try:
-        while len(train_annotations) > 0 and itr < 10000:
+        while itr < 10000:
             feed_dict = {image: train_images, annotation: train_annotations, keep_probability: 0.5}
             _, rloss =  sess.run([train_op, loss], feed_dict=feed_dict)
             print(rloss)
-            if itr % 50 == 0 and itr > 0:
+            if itr % 10 == 0 and itr > 0:
                 #train_loss, rpred = sess.run([loss, pred_annotation], feed_dict=feed_dict)
                 print("Step: %d, Train_loss:%f" % (itr, rloss))
                 train_errors.append(rloss)
                 #summary_writer.add_summary(summary_str, itr)
 
-            if itr % 50 == 0 and itr > 0:
+            if itr % 10 == 0 and itr > 0:
                 valid_loss = sess.run(loss, feed_dict={image: valid_images, annotation: valid_annotations,
                                                                keep_probability: 1.0})
                 val_errors.append(valid_loss)
@@ -298,6 +298,9 @@ def main(argv=None):
                 print("reset validation set")
                 validation_dataset_reader = BatchDatset('data/trainlist.mat', "test", batch_size)
                 valid_images, valid_annotations = validation_dataset_reader.next_batch()
+            if len(train_annotations) <= 0:
+                train_dataset_reader = BatchDatset('data/trainlist.mat', "train", batch_size)
+                train_images, train_annotations = train_dataset_reader.next_batch()
     except KeyboardInterrupt:
         saver.save(sess, FLAGS.logs_dir + "plus_model.ckpt")
         record_train_val_data(train_errors, val_errors)

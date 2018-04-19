@@ -317,10 +317,12 @@ def train_main(epoch, train_size):
         permutation = np.random.permutation(train_y.shape[0])
         shuffled_a = train_y[permutation]
         shuffled_b = train_ty[permutation]
-        print('train_y', train_y)
-        print('train_ty', train_ty)
-        print('shuffled_a: ', shuffled_a)
-        print('shuffled_b: ', type(shuffled_b), shuffled_b)
+        # print('train_y', train_y)
+        # print('train_ty', train_ty)
+        # print('shuffled_a: ', shuffled_a)
+        # print('shuffled_b: ', type(shuffled_b), shuffled_b)
+        print(train_y.shape)
+        print(train_ty.shape)
         print(shuffled_a.shape)
         print(shuffled_b.shape)
         _, rloss =  sess.run([optimizer, loss], feed_dict={image: shuffled_a, true_image: shuffled_b})

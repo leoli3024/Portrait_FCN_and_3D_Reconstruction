@@ -30,7 +30,7 @@ tf.flags.DEFINE_float("learning_rate", "1e-3", "Learning rate for Adam Optimizer
 tf.flags.DEFINE_string("model_dir", "Model_zoo/", "Path to vgg model mat")
 tf.flags.DEFINE_bool('debug', "False", "Debug mode: True/ False")
 tf.flags.DEFINE_string('mode', "train", "Mode train/ test/ visualize")
-tf.reset_default_graph()
+
 
 """
     taken from https://github.com/MarcoForte/knn-matting/blob/master/donkeyTrimap.png
@@ -403,7 +403,7 @@ def main():
     # save_knn_mattes(imgs, trimaps, filenames, 'knn_alpha', mylambda=100)
     resize_images_in_dir("knn_alpha", IMAGE_WIDTH, IMAGE_HEIGHT)
     resize_images_in_dir("gt_training_lowres", IMAGE_WIDTH, IMAGE_HEIGHT)
-    
+    tf.reset_default_graph()
     train_size = 27
     train_main(20, train_size)
     # resize_images_in_dir("/Users/yu-chieh/dataxproj/knn_alpha", IMAGE_WIDTH, IMAGE_HEIGHT)

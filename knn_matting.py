@@ -30,7 +30,7 @@ tf.flags.DEFINE_float("learning_rate", "1e-3", "Learning rate for Adam Optimizer
 tf.flags.DEFINE_string("model_dir", "Model_zoo/", "Path to vgg model mat")
 tf.flags.DEFINE_bool('debug', "False", "Debug mode: True/ False")
 tf.flags.DEFINE_string('mode', "train", "Mode train/ test/ visualize")
-
+tf.reset_default_graph()
 
 """
     taken from https://github.com/MarcoForte/knn-matting/blob/master/donkeyTrimap.png

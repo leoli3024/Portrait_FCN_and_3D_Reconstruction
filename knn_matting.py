@@ -164,7 +164,7 @@ def get_true_y_for_fcn(num_images, s):
     # get num_images images form the path and put as a matrix
     imgs = []
     num = 0
-    path = 'gt_training_lowres'
+    path = 'input_training_lowres'
     for f in os.listdir(path)[s:]:
         if num >= num_images:
             return np.array(imgs)

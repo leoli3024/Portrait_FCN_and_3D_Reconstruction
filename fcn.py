@@ -224,7 +224,7 @@ def myinference_pretrained_weights(image, keep_prob):
 def record_train_val_data(list_1, list_2):
 
     df = pd.DataFrame(data={"train": list_1, "val": list_2})
-    df.to_csv(datetime.date.today().strftime("%I:%M%p%B%d") + "fcn_result.csv", sep=',',index=False)
+    df.to_csv(str(datetime.datetime.now()) + "fcn_result.csv", sep=',',index=False)
 
 def train(loss_val, var_list):
     optimizer = tf.train.AdamOptimizer(FLAGS.learning_rate)
@@ -303,7 +303,7 @@ def main(argv=None):
                 train_images, train_annotations = train_dataset_reader.next_batch()
     except:
         print("save session and data")
-        saver.save(sess, FLAGS.logs_dir + "plus_model.ckpt")
+        saver.save(sess, FLAGS.logs_dir + "plus_model.ckpt", str(datetime.datetime.now()))
         record_train_val_data(train_errors, val_errors)
         sys.exit()
     saver.save(sess, FLAGS.logs_dir + "plus_model.ckpt")

@@ -236,7 +236,7 @@ def train(loss_val, var_list):
     return optimizer.apply_gradients(grads)
 
 def main(argv=None):
-    batch_size=5
+    batch_size=1
     train_errors = []
     val_errors = []
     keep_probability = tf.placeholder(tf.float32, name="keep_probabilty")
@@ -256,8 +256,9 @@ def main(argv=None):
 
     train_dataset_reader = BatchDatset('data/trainlist.mat', "train", batch_size)
     validation_dataset_reader = BatchDatset('data/trainlist.mat', "test", batch_size)
-
-    sess = tf.Session()
+    config = tf.ConfigProto(log_device_placement=True)
+    config.gpu_options.allow_growth = True
+    sess = tf.Session(config=config)
 
     print("Setting up Saver...")
     saver = tf.train.Saver()
@@ -408,10 +409,10 @@ def save_alpha_mask_img(mat, name):
     misc.imsave(name + '.png', amat)
 
 ### call main to train, pred to predict ### 
-main()
+# main()
 
 # image = TestDataset('data/testlist.mat').get_images(20)[0]
 # image = np.expand_dims(image, axis=0)
 # print(image)
 # pred_one_image(image)
-# pred()
+pred()

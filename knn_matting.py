@@ -299,6 +299,7 @@ def train_main(epoch, train_size):
 
     sess = tf.Session()
 
+    print("Setting up Saver...")
     saver = tf.train.Saver()
     #summary_writer = tf.train.SummaryWriter(FLAGS.logs_dir, sess.graph)
 
@@ -335,7 +336,7 @@ def train_main(epoch, train_size):
         val_error.append(1.33*vloss / (100*255))
         print("Epoch: %d, Train_loss:%f" % (i, 1.33*rloss / (100*255)))
         print("Epoch: %d, Val_loss:%f" % (i, 1.33*vloss / (100*255)))
-    saver.save(sess, FLAGS.logs_dir + "plus_model.ckpt", epoch)
+        saver.save(sess, FLAGS.logs_dir + "plus_model.ckpt", epoch)
     record_train_val_data(np.linspace(0, epoch-1, epoch), t_error, val_error)
     plt.plot(np.linspace(0, epoch-1, epoch), t_error, color="blue", label="train")
     plt.plot(np.linspace(0, epoch-1, epoch), val_error, color="red", label="val")

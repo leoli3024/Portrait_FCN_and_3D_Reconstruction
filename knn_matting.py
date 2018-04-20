@@ -413,6 +413,7 @@ def main():
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
+    plt.switch_backend('agg')
     import scipy.misc
     main()
     # create_alpha_matte('dumbfcntestdata', 'dumbfcntestresult', 'dumbfcntestalpha')

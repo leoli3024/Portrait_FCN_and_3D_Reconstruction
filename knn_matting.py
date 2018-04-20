@@ -322,10 +322,10 @@ def train_main(epoch, train_size):
         # print('train_ty', train_ty)
         # print('shuffled_a: ', shuffled_a)
         # print('shuffled_b: ', type(shuffled_b), shuffled_b)
-        print(train_y.shape)
-        print(train_ty.shape)
-        print(shuffled_a.shape)
-        print(shuffled_b.shape)
+        # print(train_y.shape)
+        # print(train_ty.shape)
+        # print(shuffled_a.shape)
+        # print(shuffled_b.shape)
         _, rloss =  sess.run([optimizer, loss], feed_dict={image: shuffled_a, true_image: shuffled_b})
         _, vloss =  sess.run([optimizer, loss], feed_dict={image: val_y, true_image: val_ty})
         # print(set(true_y[0].flatten()))
@@ -406,7 +406,7 @@ def main():
     resize_images_in_dir("gt_training_lowres", IMAGE_WIDTH, IMAGE_HEIGHT)
     
     train_size = 11 #27
-    train_main(25, train_size)
+    train_main(525, train_size)
     # resize_images_in_dir("/Users/yu-chieh/dataxproj/knn_alpha", IMAGE_WIDTH, IMAGE_HEIGHT)
     # resize_images_in_dir("/gt_training_lowres", IMAGE_WIDTH, IMAGE_HEIGHT)
     # # get_images_for_fcn(27, 0, '/Users/yu-chieh/Downloads/input_training_lowres/')

@@ -12,6 +12,7 @@ import csv
 import pandas as pd
 import cv2
 import pdb
+import datetime
 
 sys.path.append('/Users/yu-chieh/seg_models/models/slim/')
 slim = tf.contrib.slim
@@ -269,7 +270,7 @@ def resnet(image):
 
 def record_train_val_data(list_0, list_1, list_2):
     df = pd.DataFrame(data={"epoches": list_0, "train": list_1, "val": list_2})
-    df.to_csv("knn_result.csv", sep=',',index=False)
+    df.to_csv(str(datetime.datetime.now()) + "knn_result.csv", sep=',',index=False)
     
 
 def train_main(epoch, train_size):
@@ -405,7 +406,7 @@ def main():
     resize_images_in_dir("gt_training_lowres", IMAGE_WIDTH, IMAGE_HEIGHT)
     
     train_size = 11 #27
-    train_main(20, train_size)
+    train_main(25, train_size)
     # resize_images_in_dir("/Users/yu-chieh/dataxproj/knn_alpha", IMAGE_WIDTH, IMAGE_HEIGHT)
     # resize_images_in_dir("/gt_training_lowres", IMAGE_WIDTH, IMAGE_HEIGHT)
     # # get_images_for_fcn(27, 0, '/Users/yu-chieh/Downloads/input_training_lowres/')

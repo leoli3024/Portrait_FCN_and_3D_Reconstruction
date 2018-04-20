@@ -404,7 +404,7 @@ def main():
     resize_images_in_dir("knn_alpha", IMAGE_WIDTH, IMAGE_HEIGHT)
     resize_images_in_dir("gt_training_lowres", IMAGE_WIDTH, IMAGE_HEIGHT)
     tf.reset_default_graph()
-    train_size = 12 #27
+    train_size = 11 #27
     train_main(20, train_size)
     # resize_images_in_dir("/Users/yu-chieh/dataxproj/knn_alpha", IMAGE_WIDTH, IMAGE_HEIGHT)
     # resize_images_in_dir("/gt_training_lowres", IMAGE_WIDTH, IMAGE_HEIGHT)

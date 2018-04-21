@@ -376,12 +376,10 @@ def main(argv=None):
 
     # pred_annotation, logits = inference(image, keep_probability)
     _, logits = myinference_pretrained_weights(image, keep_probability)
-
-    loss = tf.reduce_mean((tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits,
-                                                                          labels=tf.squeeze(annotation, squeeze_dims=[3]),
-                                                                          name="entropy"))) + tf.reduce_mean(tf.losses.get_regularization_loss())
+    loss_to_record = tf.reduce_mean((tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits,
+                                                                          labels=tf.squeeze(annotation, squeeze_dims=[3]))
+    loss = loss_to_record + tf.reduce_mean(tf.losses.get_regularization_loss())
     #tf.scalar_summary("entropy", loss)
-
     trainable_var = tf.trainable_variables()
     train_op = train(loss, trainable_var)
     train_dataset_reader = BatchDatset('data/trainlist.mat', "train", batch_size)
@@ -405,7 +403,7 @@ def main(argv=None):
     try:
         while itr < 7000:
             feed_dict = {image: train_images, annotation: train_annotations, keep_probability: 0.5}
-            _, rloss =  sess.run([train_op, loss], feed_dict=feed_dict)
+            _, rloss =  sess.run([train_op, loss_to_record], feed_dict=feed_dict)
             print(rloss)
             if itr % 10 == 0 and itr > 0:
                 #train_loss, rpred = sess.run([loss, pred_annotation], feed_dict=feed_dict)

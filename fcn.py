@@ -382,7 +382,7 @@ def main(argv=None):
     train_images, train_annotations = train_dataset_reader.next_batch()
     valid_images, valid_annotations, _ = validation_dataset_reader.next_batch()
     try:
-        while itr < 5000:
+        while itr < 6000:
             feed_dict = {image: train_images, annotation: train_annotations, keep_probability: 0.5}
             _, rloss =  sess.run([train_op, loss], feed_dict=feed_dict)
             print(rloss)
@@ -523,10 +523,10 @@ def save_alpha_mask_img(mat, name):
     misc.imsave(name + '.png', amat)
 
 ### call main to train, pred to predict ### 
-# main()
+main()
 
 # image = TestDataset('data/testlist.mat').get_images(20)[0]
 # image = np.expand_dims(image, axis=0)
 # print(image)
 # pred_one_image(image)
-pred()
+# pred()

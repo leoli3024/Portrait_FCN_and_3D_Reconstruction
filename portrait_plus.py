@@ -3,6 +3,7 @@ import scipy.io as sio
 import os
 from PIL import Image
 import math
+import numpy as np
 from scipy import misc
 import matplotlib.pyplot as plt
 
@@ -19,6 +20,8 @@ class BatchDatset:
 
     def __init__(self, imgs_path, to_train="train", batch_size=1):
         self.imgs = sio.loadmat(imgs_path)['trainlist'][0]
+        permutation = np.random.permutation(len(self.imgs))
+        self.imgs = self.imgs[permutation]
         # if to_train == "train":
         #     self.imgs = self.imgs[:int(0.8*len(self.imgs))]
         # else:
@@ -231,6 +234,8 @@ class TestDataset:
     def __init__(self, imgs_path, batch_size=1):
         self.imgs = sio.loadmat(imgs_path)['testlist'][0]
         #self.labels = sio.loadmat(labels_path)['test_list'][0]
+        permutation = np.random.permutation(len(self.imgs))
+        self.imgs = self.imgs[permutation]
         self.batch_size = batch_size
         #self.max_batch = len(self.imgs) * 9 / batch_size
         #self.cur_imgs, self.cur_labels = self.get_images(self.imgs[0])
@@ -294,28 +299,28 @@ class TestDataset:
         return None, None, None
 
 
-# if __name__ == '__main__':
-    # dat = BatchDatset('data/trainlist.mat', batch_size=5)
-    # rimat, ramat = dat.next_batch()
-    # for i in range(len(rimat)):
-    #     imat = rimat[i]
-    #     amat = ramat[i]
-    #     rgb = np.zeros((imat.shape[0], imat.shape[1], 3), dtype=np.int)
-    #     rgb[:, :, 0] = np.round(imat[:, :, 2] * 255 + 122.675)
-    #     rgb[:, :, 1] = np.round(imat[:, :, 1] * 255 + 116.669)
-    #     rgb[:, :, 2] = np.round(imat[:, :, 0] * 255 + 104.008)
-    #     misc.imsave('res/org' + str(i) + '.jpg', rgb)
-    #     xxc = imat[:, :, 3]
-    #     xxc = np.round((xxc - np.min(xxc) / (np.max(xxc) - np.min(xxc))) * 255)
-    #     misc.imsave('res/xxc' + str(i) + '.jpg', xxc)
-    #     yyc = imat[:, :, 4]
-    #     yyc = np.round((yyc - np.min(yyc) / (np.max(yyc) - np.min(yyc))) * 255)
-    #     misc.imsave('res/yyc' + str(i) + '.jpg', yyc)
-    #     mean = imat[:, :, 5] * 255
-    #     misc.imsave('res/mean' + str(i) + '.jpg', mean)
-    #     alpha = amat * 255
-    #     alpha = alpha.reshape((alpha.shape[0], alpha.shape[1]))
-    #     print(set(alpha.flatten()))
-    #     misc.imsave('res/alpha' + str(i) + '.jpg', alpha)
-    # # train_dataset_reader = BatchDatset('data/trainlist.mat', "train", 1)
-    # # train_images, train_annotations = train_dataset_reader.next_batch()
+if __name__ == '__main__':
+    dat = BatchDatset('data/trainlist.mat', batch_size=13)
+    rimat, ramat = dat.next_batch()
+    for i in range(len(rimat)):
+        imat = rimat[i]
+        amat = ramat[i]
+        rgb = np.zeros((imat.shape[0], imat.shape[1], 3), dtype=np.int)
+        rgb[:, :, 0] = np.round(imat[:, :, 2] * 255 + 122.675)
+        rgb[:, :, 1] = np.round(imat[:, :, 1] * 255 + 116.669)
+        rgb[:, :, 2] = np.round(imat[:, :, 0] * 255 + 104.008)
+        misc.imsave('res/org' + str(i) + '.jpg', rgb)
+        xxc = imat[:, :, 3]
+        xxc = np.round((xxc - np.min(xxc) / (np.max(xxc) - np.min(xxc))) * 255)
+        misc.imsave('res/xxc' + str(i) + '.jpg', xxc)
+        yyc = imat[:, :, 4]
+        yyc = np.round((yyc - np.min(yyc) / (np.max(yyc) - np.min(yyc))) * 255)
+        misc.imsave('res/yyc' + str(i) + '.jpg', yyc)
+        mean = imat[:, :, 5] * 255
+        misc.imsave('res/mean' + str(i) + '.jpg', mean)
+        alpha = amat * 255
+        alpha = alpha.reshape((alpha.shape[0], alpha.shape[1]))
+        print(set(alpha.flatten()))
+        misc.imsave('res/alpha' + str(i) + '.jpg', alpha)
+    # train_dataset_reader = BatchDatset('data/trainlist.mat', "train", 1)
+    # train_images, train_annotations = train_dataset_reader.next_batch()

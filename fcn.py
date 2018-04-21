@@ -79,6 +79,115 @@ def vgg_net(weights, image):
 
     return net
 
+def myvgg(image):
+    padded_input = tf.pad(image, [[0, 0], [100, 100], [100, 100], [0, 0]], "CONSTANT")
+    conv1_1 = tf.layers.conv2d(
+          inputs=padded_input,
+          filters=64,
+          kernel_size=3,
+          padding="valid",
+          activation=tf.nn.relu)
+    padded_input1_2 = tf.pad(conv1_1, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
+    conv1_2 = tf.layers.conv2d(
+          inputs=padded_input1_2,
+          filters=64,
+          kernel_size=3,
+          padding="valid",
+          activation=tf.nn.relu)
+    pool1 = tf.layers.max_pooling2d(conv1_2, 2, 2)
+
+    padded_input2_1 = tf.pad(pool1, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
+    conv2_1 = tf.layers.conv2d(
+          inputs=padded_input2_1,
+          filters=128,
+          kernel_size=3,
+          padding="valid",
+          activation=tf.nn.relu)
+
+    padded_input2_2 = tf.pad(conv2_1, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
+    conv2_2 = tf.layers.conv2d(
+          inputs=padded_input2_2,
+          filters=128,
+          kernel_size=3,
+          padding="valid",
+          activation=tf.nn.relu)
+    pool2 = tf.layers.max_pooling2d(conv2_2, 2, 2)
+    padded_input3_1 = tf.pad(pool2, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
+    conv3_1 = tf.layers.conv2d(
+          inputs=padded_input3_1,
+          filters=256,
+          kernel_size=3,
+          padding="valid",
+          activation=tf.nn.relu)
+    padded_input3_2 = tf.pad(conv3_1, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
+    conv3_2 = tf.layers.conv2d(
+          inputs=padded_input3_2,
+          filters=256,
+          kernel_size=3,
+          padding="valid",
+          activation=tf.nn.relu)
+    padded_input3_3 = tf.pad(conv3_2, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
+    conv3_3 = tf.layers.conv2d(
+          inputs=padded_input3_3,
+          filters=256,
+          kernel_size=3,
+          padding="valid",
+          activation=tf.nn.relu)
+    pool3 = tf.layers.max_pooling2d(conv3_3, 2, 2)
+    padded_input4_1 = tf.pad(pool3, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
+    conv4_1 = tf.layers.conv2d(
+          inputs=padded_input4_1,
+          filters=512,
+          kernel_size=3,
+          padding="valid",
+          activation=tf.nn.relu)
+    padded_input4_2 = tf.pad(conv4_1, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
+    conv4_2 = tf.layers.conv2d(
+          inputs=padded_input4_2,
+          filters=512,
+          kernel_size=3,
+          padding="valid",
+          activation=tf.nn.relu)
+    padded_input4_3 = tf.pad(conv4_2, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
+    conv4_3 = tf.layers.conv2d(
+          inputs=padded_input4_3,
+          filters=512,
+          kernel_size=3,
+          padding="valid",
+          activation=tf.nn.relu)
+    pool4 = tf.layers.max_pooling2d(conv4_3, 2, 2)
+
+    padded_input5_1 = tf.pad(pool4, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
+    conv5_1 = tf.layers.conv2d(
+          inputs=padded_input5_1,
+          filters=512,
+          kernel_size=3,
+          padding="valid",
+          activation=tf.nn.relu)
+    padded_input5_2 = tf.pad(conv5_1, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
+    conv5_2 = tf.layers.conv2d(
+          inputs=padded_input5_2,
+          filters=512,
+          kernel_size=3,
+          padding="valid",
+          activation=tf.nn.relu)
+    padded_input5_3 = tf.pad(conv5_2, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
+    conv5_3 = tf.layers.conv2d(
+          inputs=padded_input5_3,
+          filters=512,
+          kernel_size=3,
+          padding="valid",
+          activation=tf.nn.relu)
+
+    net = dict()
+    net['conv5_3'] = conv5_3
+    net['pool4'] = pool4
+    net['pool3'] = pool3
+    return net
+
+
+
+
 
 def inference(image, keep_prob):
     """
@@ -146,26 +255,27 @@ def inference(image, keep_prob):
 
 
 def myinference_pretrained_weights(image, keep_prob):
-    print("setting up vgg initialized conv layers ...")
-    model_data = utils.get_model_data(FLAGS.model_dir, MODEL_URL)
-    mean = model_data['normalization'][0][0][0]
-    weights = np.squeeze(model_data['layers'])
+    # print("setting up vgg initialized conv layers ...")
+    # model_data = utils.get_model_data(FLAGS.model_dir, MODEL_URL)
+    # mean = model_data['normalization'][0][0][0]
+    # weights = np.squeeze(model_data['layers'])
     with tf.variable_scope("inference"):
-        image_net = vgg_net(weights, image)
+        # image_net = vgg_net(weights, image)
+        image_net = myvgg(image)
         conv_final_layer = image_net["conv5_3"]
         pool5 = tf.layers.max_pooling2d(conv_final_layer, 2, 2)
         conv6 = tf.layers.conv2d(
           inputs=pool5,
           filters=4096,
           kernel_size=7,
-          padding="same",
+          padding="valid",
           activation=tf.nn.relu)
         relu_dropout6 = tf.nn.dropout(conv6, keep_prob=keep_prob)
         conv7 = tf.layers.conv2d(
           inputs=relu_dropout6,
           filters=4096,
           kernel_size=1,
-          padding="same",
+          padding="valid",
           activation=tf.nn.relu)
         if FLAGS.debug:
             utils.add_activation_summary(conv7)
@@ -175,20 +285,20 @@ def myinference_pretrained_weights(image, keep_prob):
         score = tf.layers.conv2d(
           inputs=relu_dropout7,
           filters=2,
-          padding="same",
+          padding="valid",
           kernel_size=1)
         # score2
         conv_t1 = tf.layers.conv2d_transpose(
                     inputs=score,
                     filters=2,
-                    padding="same",
+                    padding="valid",
                     kernel_size=4,
                     strides=2)
         score_pool4 = tf.layers.conv2d(
           inputs=image_net["pool4"],
           filters=2,
           kernel_size=1,
-          padding="same")
+          padding="valid")
         score_fused = utils.crop_and_add(score_pool4, conv_t1)
 
         #### second deconv
@@ -196,7 +306,7 @@ def myinference_pretrained_weights(image, keep_prob):
         conv_t2 = tf.layers.conv2d_transpose(
                     inputs=score_fused,
                     filters=2,
-                    padding="same",
+                    padding="valid",
                     kernel_size=4,
                     strides=2,
                     use_bias=False)
@@ -204,14 +314,14 @@ def myinference_pretrained_weights(image, keep_prob):
           inputs=image_net["pool3"],
           filters=2,
           kernel_size=1,
-          padding="same")
+          padding="valid")
         score_fused2 = utils.crop_and_add(score_pool3, conv_t2)
         # ### final deconv
         # # upsample
         conv_t3 = tf.layers.conv2d_transpose(
                     inputs=score_fused2,
                     filters=2,
-                    padding="same",
+                    padding="valid",
                     kernel_size=16,
                     strides=8,
                     use_bias=False)
@@ -253,7 +363,6 @@ def main(argv=None):
 
     trainable_var = tf.trainable_variables()
     train_op = train(loss, trainable_var)
-
     train_dataset_reader = BatchDatset('data/trainlist.mat', "train", batch_size)
     validation_dataset_reader = TestDataset('data/testlist.mat', batch_size)
     config = tf.ConfigProto(log_device_placement=True)
@@ -334,11 +443,11 @@ def pred_one_image(img):
         if ckpt and ckpt.model_checkpoint_path:
             saver.restore(sess, ckpt.model_checkpoint_path)
             print("Model restored...")
-        feed_dict = {image: img, keep_probability: 0.5}
+        feed_dict = {image: img, keep_probability: 1}
         _, logits = sess.run([pred_annotation, logits], feed_dict=feed_dict)
         difference = np.exp(logits[:, :, 1] - logits[:, :, 0])
         final = difference/(1+difference)
-        final = final[final > 0.5].astype(float)
+        final = (final > 0.5).astype(float)
         save_alpha_mask_img(final, 'res/trimap' + '/face_demo')
 
 def pred():
@@ -348,6 +457,7 @@ def pred():
 
     pred_annotation, logits = myinference_pretrained_weights(image, keep_probability)
     test_dataset_reader = TestDataset('data/testlist.mat')
+    # train_dataset_reader = BatchDatset('data/trainlist.mat', "train")
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         ckpt = tf.train.get_checkpoint_state(FLAGS.logs_dir)
@@ -357,25 +467,29 @@ def pred():
             print("Model restored...")
         itr = 0
         test_images, test_annotations, test_orgs = test_dataset_reader.next_batch()
+        # train_images, train_annotations = train_dataset_reader.next_batch()
         while len(test_annotations) > 0:
             if itr > 22:
                 break
-            feed_dict = {image: test_images, keep_probability: 0.5}
+            feed_dict = {image: test_images, keep_probability: 1}
             _, l = sess.run([pred_annotation, logits], feed_dict=feed_dict)
-            print(l.shape)
+            print(l.shape, "l")
             l = np.squeeze(l)
             difference = np.exp(l[:, :, 1] - l[:, :, 0])
-            print(difference.shape)
+            # print(difference.shape)
             final = (difference / (1.0+difference))
             final[final <= 0.5] = 0
-            final[((final > 0.5) & (final <= 0.8))] = 128
-            final[final > 0.8] = 255
+            # final[((final > 0.5) & (final <= 0.8))] = 128
+            final[final > 0.5] = 255
             trimap = final
             org0_im = Image.fromarray(np.uint8(test_orgs[0]))
             org0_im.save('res/org' + str(itr) + '.jpg')
             save_alpha_img(test_orgs[0], test_annotations[0], 'res/ann' + str(itr))
-            save_alpha_mask_img(trimap, 'res/trimap' + str(itr))
+            save_alpha_img(test_orgs[0], trimap, 'res/trimap' + str(itr))
+
+            # save_alpha_mask_img(trimap, 'res/trimap' + str(itr))
             test_images, test_annotations, test_orgs = test_dataset_reader.next_batch()
+            # train_images, train_annotations = train_dataset_reader.next_batch()
             itr += 1
 
 def save_alpha_img(org, mat, name):
@@ -393,12 +507,12 @@ def save_alpha_img(org, mat, name):
 
 
 def save_alpha_mask_img(mat, name):
-    print(mat.shape)
+    # print(mat.shape)
     w, h = mat.shape[0], mat.shape[1]
     #print(mat[200:210, 200:210])
-    print(w, h)
+    # print(w, h)
     rmat = np.reshape(mat, (w, h))
-    amat = np.zeros((w, h, 3), dtype=np.int)
+    amat = np.zeros((w, h, 3), dtype=np.uint8)
     amat[:, :, 0] = rmat
     amat[:, :, 1] = rmat
     amat[:, :, 2] = rmat
@@ -409,10 +523,10 @@ def save_alpha_mask_img(mat, name):
     misc.imsave(name + '.png', amat)
 
 ### call main to train, pred to predict ### 
-main()
+# main()
 
 # image = TestDataset('data/testlist.mat').get_images(20)[0]
 # image = np.expand_dims(image, axis=0)
 # print(image)
 # pred_one_image(image)
-# pred()
+pred()

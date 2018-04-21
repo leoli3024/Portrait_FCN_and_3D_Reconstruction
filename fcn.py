@@ -376,8 +376,7 @@ def main(argv=None):
 
     # pred_annotation, logits = inference(image, keep_probability)
     _, logits = myinference_pretrained_weights(image, keep_probability)
-    loss_to_record = tf.reduce_mean((tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits,
-                                                                          labels=tf.squeeze(annotation, squeeze_dims=[3]))
+    loss_to_record = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=tf.squeeze(annotation, squeeze_dims=[3])))
     loss = loss_to_record + tf.reduce_mean(tf.losses.get_regularization_loss())
     #tf.scalar_summary("entropy", loss)
     trainable_var = tf.trainable_variables()

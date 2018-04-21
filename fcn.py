@@ -382,7 +382,7 @@ def main(argv=None):
     train_images, train_annotations = train_dataset_reader.next_batch()
     valid_images, valid_annotations, _ = validation_dataset_reader.next_batch()
     try:
-        while itr < 6000:
+        while itr < 7000:
             feed_dict = {image: train_images, annotation: train_annotations, keep_probability: 0.5}
             _, rloss =  sess.run([train_op, loss], feed_dict=feed_dict)
             print(rloss)

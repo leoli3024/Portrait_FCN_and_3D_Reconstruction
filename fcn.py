@@ -86,16 +86,14 @@ def myvgg(image):
           filters=64,
           kernel_size=3,
           padding="valid",
-          activation=tf.nn.relu,
-          kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005))
+          activation=tf.nn.relu)
     padded_input1_2 = tf.pad(conv1_1, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
     conv1_2 = tf.layers.conv2d(
           inputs=padded_input1_2,
           filters=64,
           kernel_size=3,
           padding="valid",
-          activation=tf.nn.relu,
-          kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005))
+          activation=tf.nn.relu)
     pool1 = tf.layers.max_pooling2d(conv1_2, 2, 2)
 
     padded_input2_1 = tf.pad(pool1, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
@@ -104,8 +102,7 @@ def myvgg(image):
           filters=128,
           kernel_size=3,
           padding="valid",
-          activation=tf.nn.relu,
-          kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005))
+          activation=tf.nn.relu)
 
     padded_input2_2 = tf.pad(conv2_1, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
     conv2_2 = tf.layers.conv2d(
@@ -113,8 +110,7 @@ def myvgg(image):
           filters=128,
           kernel_size=3,
           padding="valid",
-          activation=tf.nn.relu,
-          kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005))
+          activation=tf.nn.relu)
     pool2 = tf.layers.max_pooling2d(conv2_2, 2, 2)
     padded_input3_1 = tf.pad(pool2, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
     conv3_1 = tf.layers.conv2d(
@@ -122,24 +118,21 @@ def myvgg(image):
           filters=256,
           kernel_size=3,
           padding="valid",
-          activation=tf.nn.relu,
-          kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005))
+          activation=tf.nn.relu)
     padded_input3_2 = tf.pad(conv3_1, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
     conv3_2 = tf.layers.conv2d(
           inputs=padded_input3_2,
           filters=256,
           kernel_size=3,
           padding="valid",
-          activation=tf.nn.relu,
-          kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005))
+          activation=tf.nn.relu)
     padded_input3_3 = tf.pad(conv3_2, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
     conv3_3 = tf.layers.conv2d(
           inputs=padded_input3_3,
           filters=256,
           kernel_size=3,
           padding="valid",
-          activation=tf.nn.relu,
-          kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005))
+          activation=tf.nn.relu)
     pool3 = tf.layers.max_pooling2d(conv3_3, 2, 2)
     padded_input4_1 = tf.pad(pool3, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
     conv4_1 = tf.layers.conv2d(
@@ -147,24 +140,21 @@ def myvgg(image):
           filters=512,
           kernel_size=3,
           padding="valid",
-          activation=tf.nn.relu,
-          kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005))
+          activation=tf.nn.relu)
     padded_input4_2 = tf.pad(conv4_1, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
     conv4_2 = tf.layers.conv2d(
           inputs=padded_input4_2,
           filters=512,
           kernel_size=3,
           padding="valid",
-          activation=tf.nn.relu,
-          kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005))
+          activation=tf.nn.relu)
     padded_input4_3 = tf.pad(conv4_2, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
     conv4_3 = tf.layers.conv2d(
           inputs=padded_input4_3,
           filters=512,
           kernel_size=3,
           padding="valid",
-          activation=tf.nn.relu,
-          kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005))
+          activation=tf.nn.relu)
     pool4 = tf.layers.max_pooling2d(conv4_3, 2, 2)
 
     padded_input5_1 = tf.pad(pool4, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
@@ -173,24 +163,21 @@ def myvgg(image):
           filters=512,
           kernel_size=3,
           padding="valid",
-          activation=tf.nn.relu,
-          kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005))
+          activation=tf.nn.relu)
     padded_input5_2 = tf.pad(conv5_1, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
     conv5_2 = tf.layers.conv2d(
           inputs=padded_input5_2,
           filters=512,
           kernel_size=3,
           padding="valid",
-          activation=tf.nn.relu,
-          kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005))
+          activation=tf.nn.relu)
     padded_input5_3 = tf.pad(conv5_2, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
     conv5_3 = tf.layers.conv2d(
           inputs=padded_input5_3,
           filters=512,
           kernel_size=3,
           padding="valid",
-          activation=tf.nn.relu,
-          kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005))
+          activation=tf.nn.relu)
 
     net = dict()
     net['conv5_3'] = conv5_3
@@ -282,16 +269,14 @@ def myinference_pretrained_weights(image, keep_prob):
           filters=4096,
           kernel_size=7,
           padding="valid",
-          activation=tf.nn.relu,
-          kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005))
+          activation=tf.nn.relu)
         relu_dropout6 = tf.nn.dropout(conv6, keep_prob=keep_prob)
         conv7 = tf.layers.conv2d(
           inputs=relu_dropout6,
           filters=4096,
           kernel_size=1,
           padding="valid",
-          activation=tf.nn.relu,
-          kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005))
+          activation=tf.nn.relu)
         if FLAGS.debug:
             utils.add_activation_summary(conv7)
         relu_dropout7 = tf.nn.dropout(conv7, keep_prob=keep_prob)
@@ -301,22 +286,19 @@ def myinference_pretrained_weights(image, keep_prob):
           inputs=relu_dropout7,
           filters=2,
           padding="valid",
-          kernel_size=1,
-          kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005))
+          kernel_size=1)
         # score2
         conv_t1 = tf.layers.conv2d_transpose(
                     inputs=score,
                     filters=2,
                     padding="valid",
                     kernel_size=4,
-                    strides=2,
-                    kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005))
+                    strides=2)
         score_pool4 = tf.layers.conv2d(
           inputs=image_net["pool4"],
           filters=2,
           kernel_size=1,
-          padding="valid",
-          kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005))
+          padding="valid")
         score_fused = utils.crop_and_add(score_pool4, conv_t1)
 
         #### second deconv
@@ -327,14 +309,12 @@ def myinference_pretrained_weights(image, keep_prob):
                     padding="valid",
                     kernel_size=4,
                     strides=2,
-                    use_bias=False,
-                    kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005))
+                    use_bias=False)
         score_pool3 = tf.layers.conv2d(
           inputs=image_net["pool3"],
           filters=2,
           kernel_size=1,
-          padding="valid",
-          kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005))
+          padding="valid")
         score_fused2 = utils.crop_and_add(score_pool3, conv_t2)
         # ### final deconv
         # # upsample
@@ -344,8 +324,7 @@ def myinference_pretrained_weights(image, keep_prob):
                     padding="valid",
                     kernel_size=16,
                     strides=8,
-                    use_bias=False,
-                    kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005))
+                    use_bias=False)
         mask = utils.crop_and_add(conv_t3, image, to_add=False)
         # this is not needed
         annotation_pred = tf.argmax(mask, dimension=3, name="prediction")
@@ -376,9 +355,12 @@ def main(argv=None):
 
     # pred_annotation, logits = inference(image, keep_probability)
     _, logits = myinference_pretrained_weights(image, keep_probability)
-    loss_to_record = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=tf.squeeze(annotation, squeeze_dims=[3])))
-    loss = loss_to_record + tf.reduce_mean(tf.losses.get_regularization_loss())
+
+    loss = tf.reduce_mean((tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits,
+                                                                          labels=tf.squeeze(annotation, squeeze_dims=[3]),
+                                                                          name="entropy")))
     #tf.scalar_summary("entropy", loss)
+
     trainable_var = tf.trainable_variables()
     train_op = train(loss, trainable_var)
     train_dataset_reader = BatchDatset('data/trainlist.mat', "train", batch_size)
@@ -402,7 +384,7 @@ def main(argv=None):
     try:
         while itr < 7000:
             feed_dict = {image: train_images, annotation: train_annotations, keep_probability: 0.5}
-            _, rloss =  sess.run([train_op, loss_to_record], feed_dict=feed_dict)
+            _, rloss =  sess.run([train_op, loss], feed_dict=feed_dict)
             print(rloss)
             if itr % 10 == 0 and itr > 0:
                 #train_loss, rpred = sess.run([loss, pred_annotation], feed_dict=feed_dict)

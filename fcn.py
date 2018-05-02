@@ -15,10 +15,11 @@ from portrait_plus import BatchDatset, TestDataset
 import TensorflowUtils_plus as utils
 from scipy import misc
 import datetime
+from preprocess_image_to_fcn import get_processed_image
 
 FLAGS = tf.flags.FLAGS
 tf.flags.DEFINE_integer("batch_size", "5", "batch size for training")
-tf.flags.DEFINE_string("logs_dir", "logs/", "path to logs directory")
+tf.flags.DEFINE_string("logs_dir", "logs_vgg/", "path to logs directory")
 tf.flags.DEFINE_string("data_dir", "Data_zoo/MIT_SceneParsing/", "path to dataset")
 tf.flags.DEFINE_float("learning_rate", "1e-4", "Learning rate for Adam Optimizer")
 tf.flags.DEFINE_string("model_dir", "Model_zoo/", "Path to vgg model mat")
@@ -254,28 +255,28 @@ def inference(image, keep_prob):
     return tf.expand_dims(annotation_pred, dim=3), conv_t3
 
 
-def myinference_pretrained_weights(image, keep_prob):
+def myinference_pretrained_weights(image, keep_prob, p="valid"):
     # print("setting up vgg initialized conv layers ...")
-    # model_data = utils.get_model_data(FLAGS.model_dir, MODEL_URL)
-    # mean = model_data['normalization'][0][0][0]
-    # weights = np.squeeze(model_data['layers'])
+    model_data = utils.get_model_data(FLAGS.model_dir, MODEL_URL)
+    mean = model_data['normalization'][0][0][0]
+    weights = np.squeeze(model_data['layers'])
     with tf.variable_scope("inference"):
-        # image_net = vgg_net(weights, image)
-        image_net = myvgg(image)
+        image_net = vgg_net(weights, image)
+        # image_net = myvgg(image)
         conv_final_layer = image_net["conv5_3"]
         pool5 = tf.layers.max_pooling2d(conv_final_layer, 2, 2)
         conv6 = tf.layers.conv2d(
           inputs=pool5,
           filters=4096,
           kernel_size=7,
-          padding="valid",
+          padding=p,
           activation=tf.nn.relu)
         relu_dropout6 = tf.nn.dropout(conv6, keep_prob=keep_prob)
         conv7 = tf.layers.conv2d(
           inputs=relu_dropout6,
           filters=4096,
           kernel_size=1,
-          padding="valid",
+          padding=p,
           activation=tf.nn.relu)
         if FLAGS.debug:
             utils.add_activation_summary(conv7)
@@ -285,20 +286,20 @@ def myinference_pretrained_weights(image, keep_prob):
         score = tf.layers.conv2d(
           inputs=relu_dropout7,
           filters=2,
-          padding="valid",
+          padding=p,
           kernel_size=1)
         # score2
         conv_t1 = tf.layers.conv2d_transpose(
                     inputs=score,
                     filters=2,
-                    padding="valid",
+                    padding=p,
                     kernel_size=4,
                     strides=2)
         score_pool4 = tf.layers.conv2d(
           inputs=image_net["pool4"],
           filters=2,
           kernel_size=1,
-          padding="valid")
+          padding=p)
         score_fused = utils.crop_and_add(score_pool4, conv_t1)
 
         #### second deconv
@@ -306,7 +307,7 @@ def myinference_pretrained_weights(image, keep_prob):
         conv_t2 = tf.layers.conv2d_transpose(
                     inputs=score_fused,
                     filters=2,
-                    padding="valid",
+                    padding=p,
                     kernel_size=4,
                     strides=2,
                     use_bias=False)
@@ -314,14 +315,14 @@ def myinference_pretrained_weights(image, keep_prob):
           inputs=image_net["pool3"],
           filters=2,
           kernel_size=1,
-          padding="valid")
+          padding=p)
         score_fused2 = utils.crop_and_add(score_pool3, conv_t2)
         # ### final deconv
         # # upsample
         conv_t3 = tf.layers.conv2d_transpose(
                     inputs=score_fused2,
                     filters=2,
-                    padding="valid",
+                    padding=p,
                     kernel_size=16,
                     strides=8,
                     use_bias=False)
@@ -380,7 +381,7 @@ def main(argv=None):
         print("Model restored...")
     itr = 0
     train_images, train_annotations = train_dataset_reader.next_batch()
-    valid_images, valid_annotations, _ = validation_dataset_reader.next_batch()
+    # valid_images, valid_annotations, _ = validation_dataset_reader.next_batch()
     try:
         while itr < 7000:
             feed_dict = {image: train_images, annotation: train_annotations, keep_probability: 0.5}
@@ -435,7 +436,7 @@ def pred_one_image(img):
     keep_probability = tf.placeholder(tf.float32, name="keep_probabilty")
     image = tf.placeholder(tf.float32, shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, 6], name="input_image")
     annotation = tf.placeholder(tf.int32, shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, 1], name="annotation")
-    pred_annotation, logits = myinference_pretrained_weights(image, keep_probability)
+    pred_annotation, logits = myinference_pretrained_weights(image, keep_probability, p="same")
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         ckpt = tf.train.get_checkpoint_state(FLAGS.logs_dir)
@@ -444,19 +445,27 @@ def pred_one_image(img):
             saver.restore(sess, ckpt.model_checkpoint_path)
             print("Model restored...")
         feed_dict = {image: img, keep_probability: 1}
-        _, logits = sess.run([pred_annotation, logits], feed_dict=feed_dict)
-        difference = np.exp(logits[:, :, 1] - logits[:, :, 0])
-        final = difference/(1+difference)
-        final = (final > 0.5).astype(float)
-        save_alpha_mask_img(final, 'res/trimap' + '/face_demo')
+        _, l = sess.run([pred_annotation, logits], feed_dict=feed_dict)
+        l = np.squeeze(l)
+        difference = np.exp(l[:, :, 1] - l[:, :, 0])
+        # print(difference.shape)
+        final = (difference / (1.0+difference))
+        final[final <= 0.5] = 0
+        # final[((final > 0.5) & (final <= 0.8))] = 128
+        final[final > 0.5] = 255
+        trimap = final
+        # org0_im = Image.fromarray(np.uint8(test_orgs[0]))
+        # org0_im.save('res/org' + 'example' + '.jpg')
+        # save_alpha_img(test_orgs[0], test_annotations[0], 'res/ann' + str(itr))
+        save_alpha_mask_img(trimap, 'res/trimap' + 'example')
 
 def pred():
     keep_probability = tf.placeholder(tf.float32, name="keep_probabilty")
     image = tf.placeholder(tf.float32, shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, 6], name="input_image")
     annotation = tf.placeholder(tf.int32, shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, 1], name="annotation")
 
-    pred_annotation, logits = myinference_pretrained_weights(image, keep_probability)
-    test_dataset_reader = TestDataset('data/testlist.mat')
+    pred_annotation, logits = myinference_pretrained_weights(image, keep_probability, p="same")
+    test_dataset_reader = BatchDatset('data/trainlist.mat', "train", 1)
     # train_dataset_reader = BatchDatset('data/trainlist.mat', "train")
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
@@ -466,29 +475,28 @@ def pred():
             saver.restore(sess, ckpt.model_checkpoint_path)
             print("Model restored...")
         itr = 0
-        test_images, test_annotations, test_orgs = test_dataset_reader.next_batch()
+        test_images, test_annotations = test_dataset_reader.next_batch()
         # train_images, train_annotations = train_dataset_reader.next_batch()
         while len(test_annotations) > 0:
-            if itr > 22:
-                break
+            if itr > 2:
+              break
             feed_dict = {image: test_images, keep_probability: 1}
             _, l = sess.run([pred_annotation, logits], feed_dict=feed_dict)
-            print(l.shape, "l")
             l = np.squeeze(l)
             difference = np.exp(l[:, :, 1] - l[:, :, 0])
             # print(difference.shape)
             final = (difference / (1.0+difference))
             final[final <= 0.5] = 0
-            # final[((final > 0.5) & (final <= 0.8))] = 128
-            final[final > 0.5] = 255
+            final[((final > 0.5) & (final <= 0.8))] = 128
+            final[final > 0.8] = 255
             trimap = final
-            org0_im = Image.fromarray(np.uint8(test_orgs[0]))
-            org0_im.save('res/org' + str(itr) + '.jpg')
-            save_alpha_img(test_orgs[0], test_annotations[0], 'res/ann' + str(itr))
-            save_alpha_img(test_orgs[0], trimap, 'res/trimap' + str(itr))
+            # org0_im = Image.fromarray(np.uint8(test_orgs[0]))
+            # org0_im.save('res/org' + str(itr) + '.jpg')
+            save_alpha_mask_img(test_annotations[0][:, :, 0]*255, 'res/ann' + str(itr))
+            save_alpha_mask_img(trimap, 'res/trimap' + str(itr))
 
             # save_alpha_mask_img(trimap, 'res/trimap' + str(itr))
-            test_images, test_annotations, test_orgs = test_dataset_reader.next_batch()
+            test_images, test_annotations = test_dataset_reader.next_batch()
             # train_images, train_annotations = train_dataset_reader.next_batch()
             itr += 1
 
@@ -523,10 +531,10 @@ def save_alpha_mask_img(mat, name):
     misc.imsave(name + '.png', amat)
 
 ### call main to train, pred to predict ### 
-main()
+# main()
 
-# image = TestDataset('data/testlist.mat').get_images(20)[0]
+# image = get_processed_image('/Users/yu-chieh/Downloads/images_data_crop/00688.jpg')
 # image = np.expand_dims(image, axis=0)
-# print(image)
+# print(image.shape)
 # pred_one_image(image)
-# pred()
+pred()

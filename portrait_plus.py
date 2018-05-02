@@ -106,6 +106,7 @@ class BatchDatset:
             stp = '0' + stp
         img_path = 'data/portraitFCN+_data/' + stp + '.mat'
         alpha_path = 'data/images_mask/' + stp + '_mask.mat'
+        print(img_path, alpha)
         if os.path.exists(img_path) and os.path.exists(alpha_path):
             imat = sio.loadmat(img_path)['img']
             amat = sio.loadmat(alpha_path)['mask']

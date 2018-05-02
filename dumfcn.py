@@ -24,6 +24,7 @@ def get_all_images_for_fcn(num_images, path):
     imgs = []
     num = 0
     for f in os.listdir(path):
+    	print(f)
         if num >= num_images:
             return np.array(imgs)
         image_path = os.path.join(path,f)
@@ -38,6 +39,9 @@ def get_facial_points(image, num_points):
     predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
     detector = dlib.get_frontal_face_detector()
     dets = detector(image, 1)
+    win = dlib.image_window()
+    win.clear_overlay()
+    win.set_image(image)
     points = []
     for k, d in enumerate(dets):
         # Get the landmarks/parts for the face in box d.
@@ -45,17 +49,19 @@ def get_facial_points(image, num_points):
         for i in range(num_points):
             pt = shape.part(i)
             points.append([int(pt.x), int(pt.y)])
+        win.add_overlay(shape)
+    win.add_overlay(dets)
+    dlib.hit_enter_to_continue()
     return np.array(points)
 
-def get_xy_mask(image):
+def get_xy_mask():
     # bad version
-    image_src = image
-    mask_dst = scipy.ndimage.imread('/Users/yu-chieh/Downloads/images_data_crop/02457.jpg', mode='RGB')
-    dst = get_facial_points(mask_dst, 30)
-    src = get_facial_points(image_src, 30)
-    h, status = cv2.findHomography(src, dst)
-    im_dst = cv2.warpPerspective(image_src, h, (image_src.shape[1], image_src.shape[0]))
-    return im_dst
+    mask_dst = scipy.ndimage.imread('dumbfcntestdata/org1.jpg', mode='RGB')
+    dst = get_facial_points(mask_dst, 49)
+    # src = get_facial_points(image_src, 49)
+    # h, status = cv2.findHomography(src, dst)
+    # im_dst = cv2.warpPerspective(image_src, h, (image_src.shape[1], image_src.shape[0]))
+    # return im_dst
 
 def test_fcn_featurizer(test_size, x, train_fcn=False, checkpoint_path=cpstandard):
     """
@@ -88,7 +94,8 @@ def test_fcn_featurizer(test_size, x, train_fcn=False, checkpoint_path=cpstandar
     pred, fcn_16s_variables_mapping = model(image_batch_tensor=images,
                                           number_of_classes=num_class,
                                           is_training=train_fcn)
-    binary_pred = tf.nn.sigmoid(tf.cast(pred, tf.float32), name="sigmoid")
+    # binary_pred = tf.nn.sigmoid(tf.cast(pred, tf.float32), name="sigmoid")
+    binary_pred = pred
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         # restore checkpoint
@@ -98,23 +105,31 @@ def test_fcn_featurizer(test_size, x, train_fcn=False, checkpoint_path=cpstandar
         # print(a)
         original_imgs, output_masks = sess.run([images, binary_pred], feed_dict={images: x})
         for i in range(len(original_imgs)):
-	        io.imshow(original_imgs[i])
-	        io.show()
+	        # io.imshow(original_imgs[i])
+	        # io.show()
 	        first_mask = output_masks[i]
-	        first_mask[first_mask <= 0.5] = 0
-	        first_mask[first_mask > 0.5] = 255
+	        first_mask[first_mask == 0] = 0.0
+	        first_mask[first_mask == 3] = 50.0
+	       	first_mask[first_mask == 8] = 100.0
+	        first_mask[first_mask == 12] = 150.0
+	        first_mask[first_mask == 13] = 200.0
+	        first_mask[first_mask == 15] = 255.0
+
 	        first_mask = first_mask.squeeze()
 	        shape = first_mask.shape
 	        three_d_first_mask = np.zeros((shape[0], shape[1], 3))
 	        three_d_first_mask[:, :, 0] = first_mask
 	        three_d_first_mask[:, :, 1] = first_mask
 	        three_d_first_mask[:, :, 2] = first_mask
+	        print(set(first_mask.flatten()))
+	        three_d_first_mask = three_d_first_mask.astype(np.uint8)
 	        io.imshow(three_d_first_mask)
-	        misc.imsave('dumbfcntestresult/mask' + str(i) + '.png', three_d_first_mask)
-	        print(first_mask.shape)
-	        io.show()
+	        misc.imsave(str(i) + '.png', three_d_first_mask)
+	        # print(first_mask.shape)
+	        # io.show()
 
 imgs = get_all_images_for_fcn(1, "dumbfcntestdata")
 print(imgs.shape)
 test_fcn_featurizer(1, imgs)
 
+# get_xy_mask()

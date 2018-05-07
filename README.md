@@ -24,17 +24,17 @@ Our solution automates the green screen & editing process. We take in any image 
 
 - 3) The trimap is then put into two refinement stages: a)  KNN-matting applies K-nearest neighbors to classify the unknown (grey) region and b) ResNet deals with miniscule errors that might have occurred in the PortraitFCN+. The output here is an alpha matte. Our refinement algorithm is much less computationally expensive than the current state of the art refinement procedure, DIM, while maintaining the same accuracy: a 97% IoU. In fact, we shown that our refine-ment algorithm work on a Launchpad setup of 4KB, a miniscule amount compared to an IPhone, which has 64-256 GB.
 
-<img src="https://github.com/leoli3024/Portrait-FCN-and-3D-reconstruction/blob/master/Articles_Reports/Images/Hardware_setup.jpeg" width="720" height="400">
+<p align="center"><img src="https://github.com/leoli3024/Portrait-FCN-and-3D-reconstruction/blob/master/Articles_Reports/Images/Hardware_setup.jpeg" width="720" height="400">
 
 (Hardware setup testing computational advantage of KNN) 
 
-<img src="https://github.com/leoli3024/Portrait-FCN-and-3D-reconstruction/blob/master/Articles_Reports/Images/Overview.jpeg" width="720" height="400">
-<img src="https://github.com/leoli3024/Portrait-FCN-and-3D-reconstruction/blob/master/Articles_Reports/Images/training_result.png" width="720" height="400">
+<p align="center"><img src="https://github.com/leoli3024/Portrait-FCN-and-3D-reconstruction/blob/master/Articles_Reports/Images/Overview.jpeg" width="720" height="400">
+<p align="center"><img src="https://github.com/leoli3024/Portrait-FCN-and-3D-reconstruction/blob/master/Articles_Reports/Images/training_result.png" width="720" height="400">
 
 ## User Interface
 We made a website built on Flask in which users can upload a portrait and receive a trimap, alpha matte, and a new image of themselves on a different background. The image is then run by our algorithm and then outputted onto either a web/mobile framework.  
 
-<img src="https://github.com/leoli3024/Portrait-FCN-and-3D-reconstruction/blob/master/Articles_Reports/Images/User_interface.jpeg" width="720" height="400">
+<p align="center"><img src="https://github.com/leoli3024/Portrait-FCN-and-3D-reconstruction/blob/master/Articles_Reports/Images/User_interface.jpeg" width="720" height="400">
 
 ## Work in Progress - 3D Morphable Face Model	
 
